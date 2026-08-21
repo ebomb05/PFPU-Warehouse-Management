@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>{{ vehicle["name"] }}</h2>
+        <p>Vehicle Details</p>
+    </div>
+
+    <div>
+        <a href="/vehicles">← Back to Vehicles</a>
+    </div>
+</header>
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+<section class="panel">
+
+    <h3>Vehicle Information</h3>
+
+    <form
+        method="post"
+        action="/vehicles/{{ vehicle['id'] }}/update"
+    >
+
+        <div class="form-grid">
+
+            <div>
+                <label>Vehicle Name</label>
+                <input
+                    type="text"
+                    name="name"
+                    value="{{ vehicle['name'] }}"
+                    required
+                >
+            </div>
+
+            <div>
+                <label>Unit Number</label>
+                <input
+                    type="text"
+                    name="vehicle_number"
+                    value="{{ vehicle['vehicle_number'] or '' }}"
+                >
+            </div>
+
+            <div>
+                <label>License Plate</label>
+                <input
+                    type="text"
+                    name="license_plate"
+                    value="{{ vehicle['license_plate'] or '' }}"
+                >
+            </div>
+
+            <div>
+                <label>VIN</label>
+                <input
+                    type="text"
+                    name="vin"
+                    value="{{ vehicle['vin'] or '' }}"
+                >
+            </div>
+
+            <div>
+                <label>Insurance Provider</label>
+                <input
+                    type="text"
+                    name="insurance_provider"
+                    value="{{ vehicle['insurance_provider'] or '' }}"
+                >
+            </div>
+
+            <div>
+                <label>Insurance Policy</label>
+                <input
+                    type="text"
+                    name="insurance_policy"
+                    value="{{ vehicle['insurance_policy'] or '' }}"
+                >
+            </div>
+
+            <div>
+                <label>Insurance Expiration</label>
+                <input
+                    type="date"
+                    name="insurance_expiration"
+                    value="{{ vehicle['insurance_expiration'] or '' }}"
+                >
+            </div>
+
+            <div>
+                <label>Last Maintenance</label>
+                <input
+                    type="date"
+                    name="last_maintenance_date"
+                    value="{{ vehicle['last_maintenance_date'] or '' }}"
+                >
+            </div>
+
+            <div>
+                <label>Next Maintenance</label>
+                <input
+                    type="date"
+                    name="next_maintenance_date"
+                    value="{{ vehicle['next_maintenance_date'] or '' }}"
+                >
+            </div>
+
+            <div>
+                <label>Notes</label>
+                <input
+                    type="text"
+                    name="notes"
+                    value="{{ vehicle['notes'] or '' }}"
+                >
+            </div>
+
+        </div>
+
+        <br>
+
+        <button type="submit">
+            Save Changes
+        </button>
+
+    </form>
+
+</section>
+
+<section class="panel">
+
+    <h3>Status</h3>
+
+    <p>
+        {% if vehicle["active"] %}
+            Active Vehicle
+        {% else %}
+            Retired Vehicle
+        {% endif %}
+    </p>
+
+    <form
+        method="post"
+        action="/vehicles/{{ vehicle['id'] }}/toggle-active"
+    >
+
+        {% if vehicle["active"] %}
+
+            <button type="submit">
+                Retire Vehicle
+            </button>
+
+        {% else %}
+
+            <button type="submit">
+                Reactivate Vehicle
+            </button>
+
+        {% endif %}
+
+    </form>
+
+</section>
+
+{% endblock %}

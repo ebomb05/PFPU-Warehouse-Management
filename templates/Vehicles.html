@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>Vehicles</h2>
+        <p>Manage delivery trucks and company vehicles.</p>
+    </div>
+
+    <form>
+        <input
+            name="q"
+            placeholder="Search vehicle, unit, plate, or VIN"
+            value="{{ q }}"
+        >
+
+        <button type="submit">
+            Search
+        </button>
+    </form>
+</header>
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+<section class="panel">
+
+    <h3>Add Vehicle</h3>
+
+    <form
+        method="post"
+        action="/vehicles/create"
+        class="rowform"
+    >
+
+        <input
+            type="text"
+            name="name"
+            placeholder="Vehicle Name"
+            required
+        >
+
+        <input
+            type="text"
+            name="vehicle_number"
+            placeholder="Unit Number"
+        >
+
+        <input
+            type="text"
+            name="license_plate"
+            placeholder="License Plate"
+        >
+
+        <input
+            type="text"
+            name="vin"
+            placeholder="VIN"
+        >
+
+        <input
+            type="text"
+            name="insurance_provider"
+            placeholder="Insurance Provider"
+        >
+
+        <input
+            type="text"
+            name="insurance_policy"
+            placeholder="Policy Number"
+        >
+
+        <input
+            type="date"
+            name="insurance_expiration"
+        >
+
+        <input
+            type="date"
+            name="last_maintenance_date"
+        >
+
+        <input
+            type="date"
+            name="next_maintenance_date"
+        >
+
+        <input
+            type="text"
+            name="notes"
+            placeholder="Notes"
+        >
+
+        <button type="submit">
+            Add Vehicle
+        </button>
+
+    </form>
+
+</section>
+
+<section class="panel">
+
+    <h3>Vehicle List</h3>
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Vehicle</th>
+                <th>Unit</th>
+                <th>Plate</th>
+                <th>Insurance Exp.</th>
+                <th>Next Maintenance</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for vehicle in vehicles %}
+
+            <tr>
+
+                <td>
+                    <a href="/vehicles/{{ vehicle['id'] }}">
+                        <strong>{{ vehicle["name"] }}</strong>
+                    </a>
+                </td>
+
+                <td>
+                    {{ vehicle["vehicle_number"] or "" }}
+                </td>
+
+                <td>
+                    {{ vehicle["license_plate"] or "" }}
+                </td>
+
+                <td>
+                    {{ vehicle["insurance_expiration"] or "" }}
+                </td>
+
+                <td>
+                    {{ vehicle["next_maintenance_date"] or "" }}
+                </td>
+
+                <td>
+                    {% if vehicle["active"] %}
+                        Active
+                    {% else %}
+                        Retired
+                    {% endif %}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</section>
+
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>{{ customer["name"] }}</h2>
+        <p>Customer Details</p>
+    </div>
+
+    <div>
+        <a href="/customers">← Back to Customers</a>
+    </div>
+</header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<section class="panel">
+
+    <h3>Customer Information</h3>
+
+    <form
+        method="post"
+        action="/customers/{{ customer['id'] }}/update"
+    >
+
+        <div class="form-grid">
+
+            <div>
+                <label>Customer / Company Name</label>
+
+                <input
+                    type="text"
+                    name="name"
+                    value="{{ customer['name'] }}"
+                    required
+                >
+            </div>
+
+            <div>
+                <label>Primary Contact</label>
+
+                <input
+                    type="text"
+                    name="contact_name"
+                    value="{{ customer['contact_name'] or '' }}"
+                >
+            </div>
+
+            <div>
+                <label>Phone</label>
+
+                <input
+                    type="text"
+                    name="phone"
+                    value="{{ customer['phone'] or '' }}"
+                >
+            </div>
+
+            <div>
+                <label>Email</label>
+
+                <input
+                    type="email"
+                    name="email"
+                    value="{{ customer['email'] or '' }}"
+                >
+            </div>
+
+            <div>
+                <label>Notes</label>
+
+                <input
+                    type="text"
+                    name="billing_notes"
+                    value="{{ customer['billing_notes'] or '' }}"
+                >
+            </div>
+
+        </div>
+
+        <br>
+
+        <button type="submit">
+            Save Changes
+        </button>
+
+    </form>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Status</h3>
+
+    <p>
+        {% if customer["active"] %}
+            Active Customer
+        {% else %}
+            Retired Customer
+        {% endif %}
+    </p>
+
+    <form
+        method="post"
+        action="/customers/{{ customer['id'] }}/toggle-active"
+    >
+
+        {% if customer["active"] %}
+
+            <button type="submit">
+                Retire Customer
+            </button>
+
+        {% else %}
+
+            <button type="submit">
+                Reactivate Customer
+            </button>
+
+        {% endif %}
+
+    </form>
+
+</section>
+
+{% endblock %}

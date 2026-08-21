@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>Customers</h2>
+        <p>
+            Manage returning customers and their contact information.
+        </p>
+    </div>
+
+    <form>
+        <input
+            name="q"
+            placeholder="Search customer, contact, phone, or email"
+            value="{{ q }}"
+        >
+
+        <button type="submit">
+            Search
+        </button>
+    </form>
+</header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<section class="panel">
+
+    <h3>Add Customer</h3>
+
+    <form
+        method="post"
+        action="/customers/create"
+        class="rowform"
+    >
+
+        <input
+            type="text"
+            name="name"
+            placeholder="Customer / Company Name"
+            required
+        >
+
+        <input
+            type="text"
+            name="contact_name"
+            placeholder="Primary Contact"
+        >
+
+        <input
+            type="text"
+            name="phone"
+            placeholder="Phone"
+        >
+
+        <input
+            type="email"
+            name="email"
+            placeholder="Email"
+        >
+
+        <input
+            type="text"
+            name="billing_notes"
+            placeholder="Notes"
+        >
+
+        <button type="submit">
+            Add Customer
+        </button>
+
+    </form>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Customer List</h3>
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Customer</th>
+                <th>Contact</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for customer in customers %}
+
+            <tr>
+
+                <td>
+                    <a href="/customers/{{ customer['id'] }}">
+                        <strong>
+                            {{ customer["name"] }}
+                        </strong>
+                    </a>
+                </td>
+
+                <td>
+                    {{ customer["contact_name"] or "" }}
+                </td>
+
+                <td>
+                    {{ customer["phone"] or "" }}
+                </td>
+
+                <td>
+                    {{ customer["email"] or "" }}
+                </td>
+
+                <td>
+                    {% if customer["active"] %}
+                        Active
+                    {% else %}
+                        Retired
+                    {% endif %}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</section>
+
+{% endblock %}

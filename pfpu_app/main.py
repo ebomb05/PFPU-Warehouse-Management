@@ -9,12 +9,14 @@ from .database import initialize_schema
 from .routes import (
     assets,
     barcodes,
+    customers,
     dashboard,
     export,
     inventory,
     jobs,
     locations,
     scan,
+    vehicles,
 )
 from .services.excel_service import import_excel
 
@@ -36,6 +38,8 @@ def create_app() -> FastAPI:
 
     app.include_router(dashboard.router)
     app.include_router(inventory.router)
+    app.include_router(customers.router)
+    app.include_router(vehicles.router)
     app.include_router(assets.router)
     app.include_router(locations.router)
     app.include_router(jobs.router)
