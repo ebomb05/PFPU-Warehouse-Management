@@ -2,6 +2,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..database import connect
+from ..services.asset_service import move_asset
 from ..services.barcode_service import make_barcode_svg
 from ..services.inventory_service import next_asset_id
 
@@ -9,7 +10,7 @@ router = APIRouter()
 
 
 @router.get("/assets", response_class=HTMLResponse)
-def assets(request: Request, q: str = ""):
+def assets(request: Request, q: str = "", message: str = ""):
     con = connect()
 
     if q:
@@ -91,6 +92,7 @@ def assets(request: Request, q: str = ""):
             "items": items,
             "locations": locations,
             "q": q,
+            "message": message,
         },
     )
 
@@ -136,8 +138,6 @@ def generate_assets(
             status_code=303,
         )
 
-    # Keep the old text field populated for compatibility
-    # while location_id becomes the permanent source of truth.
     location_text = location["code"]
 
     for _ in range(max(0, min(qty, 500))):
@@ -188,7 +188,6 @@ def generate_assets(
             ),
         )
 
-        # Record the asset's first known location.
         new_asset = con.execute(
             """
             SELECT id
@@ -223,5 +222,24 @@ def generate_assets(
 
     return RedirectResponse(
         "/assets",
+        status_code=303,
+    )
+
+
+@router.post("/assets/{asset_db_id}/move")
+def move_asset_route(
+    asset_db_id: int,
+    location_id: int = Form(...),
+    notes: str = Form(""),
+):
+    result = move_asset(
+        asset_id=asset_db_id,
+        to_location_id=location_id,
+        action="Manual Move",
+        notes=notes,
+    )
+
+    return RedirectResponse(
+        f"/assets?message={result['message']}",
         status_code=303,
     )

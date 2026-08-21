@@ -6,7 +6,7 @@
     <div>
         <h2>Tracked Assets</h2>
         <p>
-            Create and manage individually tracked warehouse assets.
+            Create, locate, and move individually tracked warehouse assets.
         </p>
     </div>
 
@@ -22,6 +22,13 @@
         </button>
     </form>
 </header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
 
 
 <section class="panel">
@@ -88,6 +95,8 @@
 
 <section class="panel">
 
+    <h3>Tracked Assets</h3>
+
     <table>
 
         <thead>
@@ -97,6 +106,7 @@
                 <th>Status</th>
                 <th>Location</th>
                 <th>Job</th>
+                <th>Move Asset</th>
             </tr>
         </thead>
 
@@ -142,6 +152,46 @@
 
                 <td>
                     {{ asset["assigned_job_id"] or "" }}
+                </td>
+
+                <td>
+
+                    <form
+                        method="post"
+                        action="/assets/{{ asset['id'] }}/move"
+                    >
+
+                        <select name="location_id" required>
+
+                            {% for location in locations %}
+
+                            <option
+                                value="{{ location['id'] }}"
+                                {% if asset["location_id"] == location["id"] %}
+                                    selected
+                                {% endif %}
+                            >
+
+                                {{ location["code"] }}
+
+                            </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                        <input
+                            type="text"
+                            name="notes"
+                            placeholder="Reason / notes"
+                        >
+
+                        <button type="submit">
+                            Move
+                        </button>
+
+                    </form>
+
                 </td>
 
             </tr>
