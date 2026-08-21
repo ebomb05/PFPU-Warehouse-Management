@@ -1,6 +1,7 @@
 import sqlite3
 
 from .config import BARCODE_DIR, DATA_DIR, DB_PATH, EXCEL_PATH
+from .migrations import run_migrations
 
 
 def connect():
@@ -118,6 +119,13 @@ def initialize_schema():
         )
 
     con.commit()
-    count = con.execute("SELECT COUNT(*) FROM item_master").fetchone()[0]
+
+    # Apply all database upgrades after the baseline tables exist.
+    run_migrations(con)
+
+    count = con.execute(
+        "SELECT COUNT(*) FROM item_master"
+    ).fetchone()[0]
+
     con.close()
     return count
