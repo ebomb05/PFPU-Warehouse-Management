@@ -6,7 +6,16 @@ from fastapi.templating import Jinja2Templates
 
 from .config import APP_TITLE, BARCODE_DIR, EXCEL_PATH, STATIC_DIR, TEMPLATE_DIR
 from .database import initialize_schema
-from .routes import assets, barcodes, dashboard, export, inventory, jobs, scan
+from .routes import (
+    assets,
+    barcodes,
+    dashboard,
+    export,
+    inventory,
+    jobs,
+    locations,
+    scan,
+)
 from .services.excel_service import import_excel
 
 
@@ -28,6 +37,7 @@ def create_app() -> FastAPI:
     app.include_router(dashboard.router)
     app.include_router(inventory.router)
     app.include_router(assets.router)
+    app.include_router(locations.router)
     app.include_router(jobs.router)
     app.include_router(scan.router)
     app.include_router(barcodes.router)

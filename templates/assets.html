@@ -1,1 +1,157 @@
-{% extends 'base.html' %}{% block content %}<header><h2>Tracked Assets</h2><form><input name="q" placeholder="Search barcode, item, location" value="{{q}}"><button>Search</button></form></header><section class="panel"><h3>Generate New Barcoded Assets</h3><form method="post" action="/assets/generate" class="rowform"><select name="item_master_id">{% for i in items %}<option value="{{i.id}}">{{i.description}} (Qty {{i.qty_total}})</option>{% endfor %}</select><input name="qty" type="number" min="1" max="500" value="1"><select name="location">{% for l in locations %}<option>{{l.name}}</option>{% endfor %}</select><button>Generate Assets + Barcodes</button></form></section><section class="panel"><table><tr><th>Asset ID</th><th>Description</th><th>Status</th><th>Location</th><th>Job</th></tr>{% for r in rows %}<tr><td>{{r.asset_id}}</td><td>{{r.description}}</td><td><span class="pill">{{r.status}}</span></td><td>{{r.current_location}}</td><td>{{r.assigned_job_id or ''}}</td></tr>{% endfor %}</table></section>{% endblock %}
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>Tracked Assets</h2>
+        <p>
+            Create and manage individually tracked warehouse assets.
+        </p>
+    </div>
+
+    <form>
+        <input
+            name="q"
+            placeholder="Search asset, item, or location"
+            value="{{ q }}"
+        >
+
+        <button type="submit">
+            Search
+        </button>
+    </form>
+</header>
+
+
+<section class="panel">
+
+    <h3>Generate New Tracked Assets</h3>
+
+    <form
+        method="post"
+        action="/assets/generate"
+        class="rowform"
+    >
+
+        <select name="item_master_id" required>
+
+            {% for item in items %}
+
+            <option value="{{ item['id'] }}">
+                {{ item["description"] }}
+                (Qty {{ item["qty_total"] }})
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+
+        <input
+            name="qty"
+            type="number"
+            min="1"
+            max="500"
+            value="1"
+            required
+        >
+
+
+        <select name="location_id" required>
+
+            {% for location in locations %}
+
+            <option value="{{ location['id'] }}">
+
+                {{ location["code"] }}
+
+                {% if location["name"] %}
+                    — {{ location["name"] }}
+                {% endif %}
+
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+
+        <button type="submit">
+            Generate Assets
+        </button>
+
+    </form>
+
+</section>
+
+
+<section class="panel">
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Asset ID</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Location</th>
+                <th>Job</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for asset in rows %}
+
+            <tr>
+
+                <td>
+                    <strong>
+                        {{ asset["asset_id"] }}
+                    </strong>
+                </td>
+
+                <td>
+                    {{ asset["description"] }}
+                </td>
+
+                <td>
+                    <span class="pill">
+                        {{ asset["status"] }}
+                    </span>
+                </td>
+
+                <td>
+
+                    {% if asset["location_code"] %}
+
+                        {{ asset["location_code"] }}
+
+                        {% if asset["location_name"] %}
+                            — {{ asset["location_name"] }}
+                        {% endif %}
+
+                    {% else %}
+
+                        {{ asset["current_location"] or "Unknown" }}
+
+                    {% endif %}
+
+                </td>
+
+                <td>
+                    {{ asset["assigned_job_id"] or "" }}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</section>
+
+{% endblock %}

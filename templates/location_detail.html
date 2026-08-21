@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>{{ location["code"] }}</h1>
+        <p>{{ location["name"] or "Warehouse Location" }}</p>
+    </div>
+
+    <div>
+        <a href="/locations">← Back to Locations</a>
+    </div>
+</div>
+
+{% if message %}
+<div class="card">
+    <strong>{{ message }}</strong>
+</div>
+{% endif %}
+
+
+<div class="card">
+
+    <h2>Location Information</h2>
+
+    <p>
+        <strong>Status:</strong>
+
+        {% if location["active"] %}
+            Active
+        {% else %}
+            Retired
+        {% endif %}
+    </p>
+
+    <p>
+        <strong>Assets Assigned:</strong>
+        {{ asset_count }}
+    </p>
+
+    {% if location["location_type"] == "Shelf" %}
+
+    <p>
+        <strong>Warehouse Position:</strong>
+        Row {{ location["row_number"] }},
+        Section {{ location["section_number"] }},
+        Height {{ location["height_number"] }}
+    </p>
+
+    {% endif %}
+
+</div>
+
+
+<div class="card">
+
+    <h2>Edit Location</h2>
+
+    <form
+        method="post"
+        action="/locations/{{ location['id'] }}/update"
+    >
+
+        <div class="form-grid">
+
+            <div>
+                <label>Location Code</label>
+
+                <input
+                    type="text"
+                    value="{{ location['code'] }}"
+                    disabled
+                >
+            </div>
+
+            <div>
+                <label>Name</label>
+
+                <input
+                    type="text"
+                    name="name"
+                    value="{{ location['name'] or '' }}"
+                >
+            </div>
+
+            <div>
+                <label>Location Type</label>
+
+                <select name="location_type">
+
+                    {% for type in [
+                        "Shelf",
+                        "Prep",
+                        "Repair",
+                        "Lost/Found",
+                        "Vehicle",
+                        "Job Site",
+                        "Other"
+                    ] %}
+
+                    <option
+                        value="{{ type }}"
+                        {% if location["location_type"] == type %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ type }}
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+            </div>
+
+            <div>
+                <label>Notes</label>
+
+                <input
+                    type="text"
+                    name="notes"
+                    value="{{ location['notes'] or '' }}"
+                >
+            </div>
+
+        </div>
+
+        <br>
+
+        <button type="submit">
+            Save Changes
+        </button>
+
+    </form>
+
+</div>
+
+
+<div class="card">
+
+    <h2>Assigned Assets</h2>
+
+    {% if assets %}
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Asset ID</th>
+                <th>Description</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for asset in assets %}
+
+        <tr>
+            <td>{{ asset["asset_id"] }}</td>
+            <td>{{ asset["description"] }}</td>
+            <td>{{ asset["status"] }}</td>
+        </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% else %}
+
+    <p>No assets are currently assigned to this location.</p>
+
+    {% endif %}
+
+</div>
+
+
+<div class="card">
+
+    <h2>Location Status</h2>
+
+    {% if location["active"] %}
+
+        <p>
+            Retiring a location removes it from normal warehouse use.
+            Locations containing assets cannot be retired until those
+            assets are moved.
+        </p>
+
+        <form
+            method="post"
+            action="/locations/{{ location['id'] }}/toggle-active"
+        >
+            <button type="submit">
+                Retire Location
+            </button>
+        </form>
+
+    {% else %}
+
+        <p>
+            This location is currently retired.
+        </p>
+
+        <form
+            method="post"
+            action="/locations/{{ location['id'] }}/toggle-active"
+        >
+            <button type="submit">
+                Reactivate Location
+            </button>
+        </form>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}
