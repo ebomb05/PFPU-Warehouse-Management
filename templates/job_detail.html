@@ -1,1 +1,179 @@
-{% extends 'base.html' %}{% block content %}<header><h2>{{job.job_number}} - {{job.customer}}</h2><p>{{job.event_name}} | Out: {{job.out_date}} Return: {{job.return_date}}</p></header><section class="panel"><h3>Add Equipment Need</h3><form method="post" action="/jobs/{{job.id}}/add-line" class="rowform"><select name="item_master_id">{% for i in items %}<option value="{{i.id}}">{{i.description}} (Owned {{i.qty_total}})</option>{% endfor %}</select><input name="qty_needed" type="number" min="1" value="1"><input name="notes" placeholder="Notes"><button>Add / Check Conflict</button></form></section><section class="panel"><h3>Order Sheet / Conflict Check</h3><table><tr><th>Item</th><th>Needed</th><th>Owned</th><th>Reserved Other Jobs</th><th>Available</th><th>Status</th></tr>{% for x in line_infos %}<tr class="{{'danger' if x.conflict else ''}}"><td>{{x.line.description}}</td><td>{{x.line.qty_needed}}</td><td>{{x.availability.total}}</td><td>{{x.availability.reserved}}</td><td>{{x.availability.available}}</td><td>{% if x.conflict %}CONFLICT{% else %}OK{% endif %}</td></tr>{% endfor %}</table></section>{% endblock %}
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+
+    <div>
+        <h2>
+            {{ job["job_number"] }}
+            — {{ job["customer_name"] }}
+        </h2>
+
+        <p>
+            {{ job["event_name"] or "Job" }}
+
+            {% if job["venue"] %}
+                | {{ job["venue"] }}
+            {% endif %}
+        </p>
+
+        <p>
+            Out:
+            {{ job["out_date"] }}
+
+            {% if job["out_time"] %}
+                {{ job["out_time"] }}
+            {% endif %}
+
+            |
+
+            Return:
+            {{ job["return_date"] }}
+
+            {% if job["return_time"] %}
+                {{ job["return_time"] }}
+            {% endif %}
+        </p>
+
+    </div>
+
+    <div>
+        <a href="/jobs">
+            ← Back to Jobs
+        </a>
+    </div>
+
+</header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<section class="panel">
+
+    <h3>Add Equipment Requirement</h3>
+
+    <form
+        method="post"
+        action="/jobs/{{ job['id'] }}/add-line"
+        class="rowform"
+    >
+
+        <select name="item_master_id" required>
+
+            {% for item in items %}
+
+            <option value="{{ item['id'] }}">
+
+                {{ item["description"] }}
+
+                {% if item["category"] %}
+                    — {{ item["category"] }}
+                {% endif %}
+
+                (Owned {{ item["qty_total"] }})
+
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+
+        <input
+            name="qty_needed"
+            type="number"
+            min="1"
+            value="1"
+            required
+        >
+
+
+        <input
+            name="notes"
+            placeholder="Notes"
+        >
+
+
+        <button type="submit">
+            Add / Check Conflict
+        </button>
+
+    </form>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Order Sheet / Conflict Check</h3>
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Needed</th>
+                <th>Owned</th>
+                <th>Reserved Other Jobs</th>
+                <th>Available</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for info in line_infos %}
+
+            <tr class="{% if info.conflict %}danger{% endif %}">
+
+                <td>
+                    {{ info.line["description"] }}
+                </td>
+
+                <td>
+                    {{ info.line["qty_needed"] }}
+                </td>
+
+                <td>
+                    {{ info.availability["total"] }}
+                </td>
+
+                <td>
+                    {{ info.availability["reserved"] }}
+                </td>
+
+                <td>
+                    {{ info.availability["available"] }}
+                </td>
+
+                <td>
+
+                    {% if info.conflict %}
+
+                        <strong>CONFLICT</strong>
+
+                    {% else %}
+
+                        OK
+
+                    {% endif %}
+
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</section>
+
+{% endblock %}

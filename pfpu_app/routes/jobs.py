@@ -9,65 +9,208 @@ from ..services.inventory_service import availability
 router = APIRouter()
 
 
+def next_job_number(con) -> str:
+    """
+    Generate job numbers in this format:
+
+    JOB-2026-0001
+    JOB-2026-0002
+
+    Numbering resets each calendar year.
+    """
+
+    year = datetime.now().year
+    prefix = f"JOB-{year}-"
+
+    row = con.execute(
+        """
+        SELECT job_number
+        FROM jobs
+        WHERE job_number LIKE ?
+        ORDER BY job_number DESC
+        LIMIT 1
+        """,
+        (f"{prefix}%",),
+    ).fetchone()
+
+    next_number = 1
+
+    if row:
+        try:
+            next_number = int(row["job_number"].split("-")[-1]) + 1
+        except Exception:
+            next_number = 1
+
+    return f"{prefix}{next_number:04d}"
+
+
 @router.get("/jobs", response_class=HTMLResponse)
-def jobs(request: Request):
+def jobs(request: Request, message: str = ""):
     con = connect()
-    rows = con.execute("SELECT * FROM jobs ORDER BY out_date DESC").fetchall()
+
+    rows = con.execute(
+        """
+        SELECT
+            j.*,
+            COALESCE(c.name, j.customer) AS customer_name
+        FROM jobs j
+        LEFT JOIN customers c
+            ON c.id = j.customer_id
+        ORDER BY j.out_date DESC, j.out_time DESC
+        """
+    ).fetchall()
+
+    customers = con.execute(
+        """
+        SELECT id, name
+        FROM customers
+        WHERE active = 1
+        ORDER BY name
+        """
+    ).fetchall()
+
     con.close()
 
     return request.app.state.templates.TemplateResponse(
         "jobs.html",
-        {"request": request, "rows": rows},
+        {
+            "request": request,
+            "rows": rows,
+            "customers": customers,
+            "message": message,
+        },
     )
 
 
 @router.post("/jobs/create")
 def create_job(
-    customer: str = Form(...),
+    customer_id: int = Form(...),
     event_name: str = Form(""),
+    venue: str = Form(""),
     out_date: str = Form(...),
+    out_time: str = Form(""),
     return_date: str = Form(...),
+    return_time: str = Form(""),
     notes: str = Form(""),
 ):
-    # Step 4A preserves the current job number behavior intentionally.
-    job_number = f"JOB-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-
     con = connect()
+
+    customer = con.execute(
+        """
+        SELECT *
+        FROM customers
+        WHERE id = ?
+          AND active = 1
+        """,
+        (customer_id,),
+    ).fetchone()
+
+    if not customer:
+        con.close()
+
+        return RedirectResponse(
+            "/jobs?message=Please select an active customer",
+            status_code=303,
+        )
+
+    if return_date < out_date:
+        con.close()
+
+        return RedirectResponse(
+            "/jobs?message=Return date cannot be before the out date",
+            status_code=303,
+        )
+
+    job_number = next_job_number(con)
+
     con.execute(
         """
         INSERT INTO jobs(
-            job_number, customer, event_name, out_date, return_date, notes
+            job_number,
+            customer,
+            customer_id,
+            event_name,
+            venue,
+            out_date,
+            out_time,
+            return_date,
+            return_time,
+            status,
+            prep_location,
+            notes,
+            created_at,
+            updated_at
         )
-        VALUES(?,?,?,?,?,?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         """,
-        (job_number, customer, event_name, out_date, return_date, notes),
+        (
+            job_number,
+            customer["name"],
+            customer_id,
+            event_name.strip(),
+            venue.strip(),
+            out_date,
+            out_time,
+            return_date,
+            return_time,
+            "Planning",
+            "Prep Area",
+            notes.strip(),
+        ),
     )
+
     con.commit()
     con.close()
 
-    return RedirectResponse("/jobs", status_code=303)
+    return RedirectResponse(
+        f"/jobs?message={job_number} created successfully",
+        status_code=303,
+    )
 
 
 @router.get("/jobs/{job_id}", response_class=HTMLResponse)
-def job_detail(request: Request, job_id: int):
+def job_detail(request: Request, job_id: int, message: str = ""):
     con = connect()
-    job = con.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
+
+    job = con.execute(
+        """
+        SELECT
+            j.*,
+            COALESCE(c.name, j.customer) AS customer_name
+        FROM jobs j
+        LEFT JOIN customers c
+            ON c.id = j.customer_id
+        WHERE j.id = ?
+        """,
+        (job_id,),
+    ).fetchone()
 
     if not job:
         con.close()
-        return RedirectResponse("/jobs", status_code=303)
+
+        return RedirectResponse(
+            "/jobs?message=Job not found",
+            status_code=303,
+        )
 
     lines = con.execute(
         """
-        SELECT jl.*, im.description, im.category, im.qty_total
+        SELECT
+            jl.*,
+            im.description,
+            im.category,
+            im.qty_total
         FROM job_lines jl
-        JOIN item_master im ON im.id=jl.item_master_id
-        WHERE jl.job_id=?
+        JOIN item_master im
+            ON im.id = jl.item_master_id
+        WHERE jl.job_id = ?
+        ORDER BY im.category, im.description
         """,
         (job_id,),
     ).fetchall()
 
     line_infos = []
+
     for line in lines:
         available = availability(
             line["item_master_id"],
@@ -75,6 +218,7 @@ def job_detail(request: Request, job_id: int):
             job["return_date"],
             exclude_job_id=job_id,
         )
+
         line_infos.append(
             {
                 "line": line,
@@ -84,8 +228,18 @@ def job_detail(request: Request, job_id: int):
         )
 
     items = con.execute(
-        "SELECT id, description, category, qty_total FROM item_master ORDER BY description LIMIT 1000"
+        """
+        SELECT
+            id,
+            description,
+            category,
+            qty_total
+        FROM item_master
+        ORDER BY category, description
+        LIMIT 1000
+        """
     ).fetchall()
+
     con.close()
 
     return request.app.state.templates.TemplateResponse(
@@ -95,6 +249,7 @@ def job_detail(request: Request, job_id: int):
             "job": job,
             "line_infos": line_infos,
             "items": items,
+            "message": message,
         },
     )
 
@@ -107,14 +262,85 @@ def add_job_line(
     notes: str = Form(""),
 ):
     con = connect()
+
+    job = con.execute(
+        """
+        SELECT id
+        FROM jobs
+        WHERE id = ?
+        """,
+        (job_id,),
+    ).fetchone()
+
+    if not job:
+        con.close()
+
+        return RedirectResponse(
+            "/jobs?message=Job not found",
+            status_code=303,
+        )
+
+    existing = con.execute(
+        """
+        SELECT *
+        FROM job_lines
+        WHERE job_id = ?
+          AND item_master_id = ?
+        """,
+        (job_id, item_master_id),
+    ).fetchone()
+
+    if existing:
+        con.execute(
+            """
+            UPDATE job_lines
+            SET qty_needed = qty_needed + ?,
+                notes = CASE
+                    WHEN ? != '' THEN ?
+                    ELSE notes
+                END
+            WHERE id = ?
+            """,
+            (
+                qty_needed,
+                notes.strip(),
+                notes.strip(),
+                existing["id"],
+            ),
+        )
+
+    else:
+        con.execute(
+            """
+            INSERT INTO job_lines(
+                job_id,
+                item_master_id,
+                qty_needed,
+                notes
+            )
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                job_id,
+                item_master_id,
+                qty_needed,
+                notes.strip(),
+            ),
+        )
+
     con.execute(
         """
-        INSERT INTO job_lines(job_id, item_master_id, qty_needed, notes)
-        VALUES(?,?,?,?)
+        UPDATE jobs
+        SET updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
         """,
-        (job_id, item_master_id, qty_needed, notes),
+        (job_id,),
     )
+
     con.commit()
     con.close()
 
-    return RedirectResponse(f"/jobs/{job_id}", status_code=303)
+    return RedirectResponse(
+        f"/jobs/{job_id}",
+        status_code=303,
+    )

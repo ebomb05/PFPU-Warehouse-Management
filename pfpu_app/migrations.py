@@ -1,7 +1,7 @@
 from datetime import datetime
 
 
-CURRENT_SCHEMA_VERSION = 3
+CURRENT_SCHEMA_VERSION = 4
 
 
 def run_migrations(con):
@@ -339,6 +339,90 @@ def run_migrations(con):
                 datetime.now().isoformat(timespec="seconds"),
             ),
         )
+
+    con.commit()
+
+
+    # ---------------------------------------------------------
+    # Migration 4
+    # Upgrade jobs for customers and future job workflow.
+    # ---------------------------------------------------------
+    if current_version < 4:
+        job_columns = [
+            row["name"]
+            for row in con.execute("PRAGMA table_info(jobs)").fetchall()
+        ]
+
+        if "customer_id" not in job_columns:
+            con.execute(
+                """
+                ALTER TABLE jobs
+                ADD COLUMN customer_id INTEGER
+                REFERENCES customers(id)
+                """
+            )
+
+        if "venue" not in job_columns:
+            con.execute(
+                """
+                ALTER TABLE jobs
+                ADD COLUMN venue TEXT
+                """
+            )
+
+        if "out_time" not in job_columns:
+            con.execute(
+                """
+                ALTER TABLE jobs
+                ADD COLUMN out_time TEXT
+                """
+            )
+
+        if "return_time" not in job_columns:
+            con.execute(
+                """
+                ALTER TABLE jobs
+                ADD COLUMN return_time TEXT
+                """
+            )
+
+        if "created_at" not in job_columns:
+            con.execute(
+                """
+                ALTER TABLE jobs
+                ADD COLUMN created_at TEXT
+                """
+            )
+
+        if "updated_at" not in job_columns:
+            con.execute(
+                """
+                ALTER TABLE jobs
+                ADD COLUMN updated_at TEXT
+                """
+            )
+
+        con.execute(
+            """
+            UPDATE jobs
+            SET created_at = COALESCE(created_at, CURRENT_TIMESTAMP),
+                updated_at = COALESCE(updated_at, CURRENT_TIMESTAMP)
+            """
+        )
+
+        con.execute(
+            """
+            INSERT INTO schema_migrations(version, name, applied_at)
+            VALUES (?, ?, ?)
+            """,
+            (
+                4,
+                "Upgrade jobs for customer relationships and workflow",
+                datetime.now().isoformat(timespec="seconds"),
+            ),
+        )
+
+        current_version = 4
 
     con.commit()
 

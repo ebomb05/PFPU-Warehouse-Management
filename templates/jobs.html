@@ -1,1 +1,222 @@
-{% extends 'base.html' %}{% block content %}<header><h2>Jobs / Orders</h2></header><section class="panel"><h3>Create Job</h3><form method="post" action="/jobs/create" class="rowform"><input name="customer" placeholder="Customer" required><input name="event_name" placeholder="Event / Job name"><input name="out_date" type="date" required><input name="return_date" type="date" required><input name="notes" placeholder="Notes"><button>Create</button></form></section><section class="panel"><table><tr><th>Job</th><th>Customer</th><th>Event</th><th>Out</th><th>Return</th><th>Status</th></tr>{% for r in rows %}<tr><td><a href="/jobs/{{r.id}}">{{r.job_number}}</a></td><td>{{r.customer}}</td><td>{{r.event_name}}</td><td>{{r.out_date}}</td><td>{{r.return_date}}</td><td>{{r.status}}</td></tr>{% endfor %}</table></section>{% endblock %}
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>Jobs / Orders</h2>
+        <p>Create jobs and reserve warehouse equipment.</p>
+    </div>
+</header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<section class="panel">
+
+    <h3>Create Job</h3>
+
+    {% if customers %}
+
+    <form
+        method="post"
+        action="/jobs/create"
+    >
+
+        <div class="form-grid">
+
+            <div>
+                <label>Customer</label>
+
+                <select name="customer_id" required>
+
+                    {% for customer in customers %}
+
+                    <option value="{{ customer['id'] }}">
+                        {{ customer["name"] }}
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+            </div>
+
+
+            <div>
+                <label>Event / Job Name</label>
+
+                <input
+                    type="text"
+                    name="event_name"
+                    placeholder="3x3 Video Wall - Corporate Event"
+                >
+            </div>
+
+
+            <div>
+                <label>Venue</label>
+
+                <input
+                    type="text"
+                    name="venue"
+                    placeholder="Venue / Job Site"
+                >
+            </div>
+
+
+            <div>
+                <label>Out Date</label>
+
+                <input
+                    type="date"
+                    name="out_date"
+                    required
+                >
+            </div>
+
+
+            <div>
+                <label>Out Time</label>
+
+                <input
+                    type="time"
+                    name="out_time"
+                >
+            </div>
+
+
+            <div>
+                <label>Return Date</label>
+
+                <input
+                    type="date"
+                    name="return_date"
+                    required
+                >
+            </div>
+
+
+            <div>
+                <label>Return Time</label>
+
+                <input
+                    type="time"
+                    name="return_time"
+                >
+            </div>
+
+
+            <div>
+                <label>Notes</label>
+
+                <input
+                    type="text"
+                    name="notes"
+                    placeholder="Job notes"
+                >
+            </div>
+
+        </div>
+
+        <br>
+
+        <button type="submit">
+            Create Job
+        </button>
+
+    </form>
+
+    {% else %}
+
+    <p>
+        No active customers exist yet.
+        Create a customer before creating a job.
+    </p>
+
+    <a href="/customers">
+        Go to Customers
+    </a>
+
+    {% endif %}
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Jobs</h3>
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Job</th>
+                <th>Customer</th>
+                <th>Event</th>
+                <th>Venue</th>
+                <th>Out</th>
+                <th>Return</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for job in rows %}
+
+            <tr>
+
+                <td>
+                    <a href="/jobs/{{ job['id'] }}">
+                        <strong>{{ job["job_number"] }}</strong>
+                    </a>
+                </td>
+
+                <td>
+                    {{ job["customer_name"] }}
+                </td>
+
+                <td>
+                    {{ job["event_name"] or "" }}
+                </td>
+
+                <td>
+                    {{ job["venue"] or "" }}
+                </td>
+
+                <td>
+                    {{ job["out_date"] }}
+
+                    {% if job["out_time"] %}
+                        {{ job["out_time"] }}
+                    {% endif %}
+                </td>
+
+                <td>
+                    {{ job["return_date"] }}
+
+                    {% if job["return_time"] %}
+                        {{ job["return_time"] }}
+                    {% endif %}
+                </td>
+
+                <td>
+                    {{ job["status"] }}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</section>
+
+{% endblock %}
