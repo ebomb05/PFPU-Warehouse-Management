@@ -1,7 +1,7 @@
 from datetime import datetime
 
 
-CURRENT_SCHEMA_VERSION = 6
+CURRENT_SCHEMA_VERSION = 7
 
 
 def run_migrations(con):
@@ -533,7 +533,54 @@ def run_migrations(con):
 
         current_version = 6
 
+    # ---------------------------------------------------------
+    # Migration 7
+    # Link vehicle records to warehouse vehicle locations.
+    # ---------------------------------------------------------
+    if current_version < 7:
+        vehicle_columns = [
+            row["name"]
+            for row in con.execute("PRAGMA table_info(vehicles)").fetchall()
+        ]
+
+        if "warehouse_location_id" not in vehicle_columns:
+            con.execute(
+                """
+                ALTER TABLE vehicles
+                ADD COLUMN warehouse_location_id INTEGER
+                REFERENCES warehouse_locations(id)
+                """
+            )
+
+        con.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            idx_vehicles_warehouse_location_id
+            ON vehicles(warehouse_location_id)
+            WHERE warehouse_location_id IS NOT NULL
+            """
+        )
+
+        con.execute(
+            """
+            INSERT INTO schema_migrations(
+                version,
+                name,
+                applied_at
+            )
+            VALUES (?, ?, ?)
+            """,
+            (
+                7,
+                "Link vehicles to warehouse locations",
+                datetime.now().isoformat(timespec="seconds"),
+            ),
+        )
+
+        current_version = 7
+
     con.commit()
+
 
 
 def get_schema_version(con):

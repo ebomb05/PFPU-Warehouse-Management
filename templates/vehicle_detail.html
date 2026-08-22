@@ -50,6 +50,30 @@
             </div>
 
             <div>
+    <label>Warehouse Vehicle Location</label>
+
+    <select name="warehouse_location_id">
+        <option value="">Not linked</option>
+
+        {% for location in vehicle_locations %}
+
+        <option
+            value="{{ location['id'] }}"
+            {% if vehicle["warehouse_location_id"] == location["id"] %}
+                selected
+            {% endif %}
+        >
+            {{ location["code"] }}
+            {% if location["name"] %}
+                — {{ location["name"] }}
+            {% endif %}
+        </option>
+
+        {% endfor %}
+    </select>
+</div>
+
+            <div>
                 <label>License Plate</label>
                 <input
                     type="text"

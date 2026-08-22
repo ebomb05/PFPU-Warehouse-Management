@@ -46,6 +46,141 @@
 
 </header>
 
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<!-- PASTE THE NEW ASSIGNED VEHICLES SECTION HERE -->
+
+
+<section class="panel">
+
+    <h3>Apply Job Pack</h3>
+
+<section class="panel">
+
+    <h3>Assigned Vehicles</h3>
+
+    {% if assigned_vehicles %}
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Vehicle</th>
+                <th>Unit</th>
+                <th>Plate</th>
+                <th>Warehouse Location</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for vehicle in assigned_vehicles %}
+
+            <tr>
+
+                <td>
+                    <strong>
+                        {{ vehicle["name"] }}
+                    </strong>
+                </td>
+
+                <td>
+                    {{ vehicle["vehicle_number"] or "" }}
+                </td>
+
+                <td>
+                    {{ vehicle["license_plate"] or "" }}
+                </td>
+
+                <td>
+                    {{ vehicle["location_code"] or "Not linked" }}
+
+                    {% if vehicle["location_name"] %}
+                        — {{ vehicle["location_name"] }}
+                    {% endif %}
+                </td>
+
+                <td>
+
+                    <form
+                        method="post"
+                        action="/jobs/{{ job['id'] }}/vehicles/{{ vehicle['id'] }}/remove"
+                    >
+
+                        <button type="submit">
+                            Remove
+                        </button>
+
+                    </form>
+
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% else %}
+
+    <p>
+        No vehicles are currently assigned to this job.
+    </p>
+
+    {% endif %}
+
+
+    {% if available_vehicles %}
+
+    <h4>Assign Vehicle</h4>
+
+    <form
+        method="post"
+        action="/jobs/{{ job['id'] }}/vehicles/assign"
+        class="rowform"
+    >
+
+        <select
+            name="vehicle_id"
+            required
+        >
+
+        {% for vehicle in available_vehicles %}
+
+            <option value="{{ vehicle['id'] }}">
+
+                {{ vehicle["name"] }}
+
+                {% if vehicle["vehicle_number"] %}
+                    — Unit {{ vehicle["vehicle_number"] }}
+                {% endif %}
+
+                — {{ vehicle["location_code"] }}
+
+            </option>
+
+        {% endfor %}
+
+        </select>
+
+        <button type="submit">
+            Assign Vehicle
+        </button>
+
+    </form>
+
+    {% endif %}
+
+</section>
+
 
 {% if message %}
 <section class="panel">

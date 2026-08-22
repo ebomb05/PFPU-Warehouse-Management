@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+
+    <div>
+        <h2>Vehicle Loading</h2>
+
+        <h3>
+            {{ job["job_number"] }}
+            — {{ job["customer_name"] }}
+        </h3>
+
+        <p>
+            {{ job["event_name"] or "Job" }}
+        </p>
+    </div>
+
+    <div>
+        <a href="/jobs/{{ job['id'] }}">
+            ← Back to Job
+        </a>
+    </div>
+
+</header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<section class="panel">
+
+    <h3>Load Vehicle</h3>
+
+    <form method="get" action="/jobs/{{ job['id'] }}/load">
+
+        <label>Vehicle</label>
+
+        <select
+            name="vehicle_id"
+            onchange="this.form.submit()"
+        >
+
+        {% for vehicle in vehicles %}
+
+            <option
+                value="{{ vehicle['id'] }}"
+                {% if vehicle["id"] == selected_vehicle["id"] %}
+                    selected
+                {% endif %}
+            >
+
+                {{ vehicle["name"] }}
+                — {{ vehicle["location_code"] }}
+
+            </option>
+
+        {% endfor %}
+
+        </select>
+
+    </form>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Loading Progress</h3>
+
+    <p style="font-size: 1.5rem;">
+
+        <strong>
+            {{ total_loaded }} / {{ total_pulled }}
+        </strong>
+
+        pulled tracked assets loaded onto
+
+        <strong>
+            {{ selected_vehicle["name"] }}
+        </strong>
+
+    </p>
+
+    {% if total_pulled > 0 %}
+
+        {% set percent = ((total_loaded / total_pulled) * 100) | int %}
+
+        <div style="
+            width: 100%;
+            height: 24px;
+            background: #ddd;
+            border-radius: 6px;
+            overflow: hidden;
+        ">
+
+            <div style="
+                width: {{ percent if percent <= 100 else 100 }}%;
+                height: 100%;
+                background: #4caf50;
+            ">
+            </div>
+
+        </div>
+
+    {% endif %}
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Scan Equipment onto Vehicle</h3>
+
+    <p>
+        Scan a pulled asset currently in PREP.
+    </p>
+
+    <form
+        method="post"
+        action="/jobs/{{ job['id'] }}/load"
+    >
+
+        <input
+            type="hidden"
+            name="vehicle_id"
+            value="{{ selected_vehicle['id'] }}"
+        >
+
+        <input
+            type="text"
+            name="barcode_value"
+            id="barcode-input"
+            placeholder="Scan QR / Asset ID"
+            autocomplete="off"
+            autofocus
+            required
+            style="
+                width: 100%;
+                box-sizing: border-box;
+                font-size: 1.6rem;
+                padding: 16px;
+                margin-bottom: 12px;
+            "
+        >
+
+        <button
+            type="submit"
+            class="big"
+            style="width: 100%;"
+        >
+            Load onto {{ selected_vehicle["name"] }}
+        </button>
+
+    </form>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Waiting in PREP</h3>
+
+    {% if prep_assets %}
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Asset</th>
+                <th>Description</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for asset in prep_assets %}
+
+            <tr>
+
+                <td>
+                    <strong>
+                        {{ asset["asset_id"] }}
+                    </strong>
+                </td>
+
+                <td>
+                    {{ asset["description"] }}
+                </td>
+
+                <td>
+                    {{ asset["status"] }}
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% else %}
+
+    <p>
+        No job equipment is currently waiting in PREP.
+    </p>
+
+    {% endif %}
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Loaded on {{ selected_vehicle["name"] }}</h3>
+
+    {% if loaded_assets %}
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Asset</th>
+                <th>Description</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for asset in loaded_assets %}
+
+            <tr>
+
+                <td>
+                    <strong>
+                        {{ asset["asset_id"] }}
+                    </strong>
+                </td>
+
+                <td>
+                    {{ asset["description"] }}
+                </td>
+
+                <td>
+                    {{ asset["status"] }}
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% else %}
+
+    <p>
+        Nothing has been loaded onto this vehicle yet.
+    </p>
+
+    {% endif %}
+
+</section>
+
+
+<script>
+
+    const barcodeInput =
+        document.getElementById("barcode-input");
+
+    if (barcodeInput) {
+
+        window.addEventListener(
+            "load",
+            function () {
+                barcodeInput.focus();
+            }
+        );
+
+    }
+
+</script>
+
+{% endblock %}

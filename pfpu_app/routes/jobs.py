@@ -8,6 +8,7 @@ from ..database import connect
 from ..services.inventory_service import availability
 from ..services.pull_list_service import build_pull_list
 from ..services.job_pull_service import pull_asset_to_prep
+from ..services.job_load_service import load_asset_to_vehicle
 
 router = APIRouter()
 
@@ -255,6 +256,54 @@ def job_detail(request: Request, job_id: int, message: str = ""):
         """
     ).fetchall()
 
+    assigned_vehicles = con.execute(
+        """
+        SELECT
+            v.id,
+            v.name,
+            v.vehicle_number,
+            v.license_plate,
+            v.warehouse_location_id,
+            wl.code AS location_code,
+            wl.name AS location_name
+        FROM job_vehicles jv
+        JOIN vehicles v
+            ON v.id = jv.vehicle_id
+        LEFT JOIN warehouse_locations wl
+            ON wl.id = v.warehouse_location_id
+        WHERE jv.job_id = ?
+        ORDER BY v.name
+        """,
+        (job_id,),
+    ).fetchall()
+
+    available_vehicles = con.execute(
+        """
+        SELECT
+            v.id,
+            v.name,
+            v.vehicle_number,
+            v.license_plate,
+            v.warehouse_location_id,
+            wl.code AS location_code,
+            wl.name AS location_name
+        FROM vehicles v
+        JOIN warehouse_locations wl
+            ON wl.id = v.warehouse_location_id
+        WHERE v.active = 1
+          AND wl.active = 1
+          AND wl.location_type = 'Vehicle'
+          AND NOT EXISTS (
+              SELECT 1
+              FROM job_vehicles jv
+              WHERE jv.job_id = ?
+                AND jv.vehicle_id = v.id
+          )
+        ORDER BY v.name
+        """,
+        (job_id,),
+    ).fetchall()
+
     pull_list = build_pull_list(job_id)
 
     con.close()
@@ -267,6 +316,8 @@ def job_detail(request: Request, job_id: int, message: str = ""):
             "line_infos": line_infos,
             "items": items,
             "job_packs": job_packs,
+            "assigned_vehicles": assigned_vehicles,
+            "available_vehicles": available_vehicles,
             "pull_list": pull_list,
             "message": message,
         },
@@ -502,6 +553,166 @@ def apply_job_pack(
         status_code=303,
     )
 
+@router.post("/jobs/{job_id}/vehicles/assign")
+def assign_vehicle_to_job(
+    job_id: int,
+    vehicle_id: int = Form(...),
+):
+    con = connect()
+
+    job = con.execute(
+        """
+        SELECT id
+        FROM jobs
+        WHERE id = ?
+        """,
+        (job_id,),
+    ).fetchone()
+
+    if not job:
+        con.close()
+
+        return RedirectResponse(
+            "/jobs?message=Job not found",
+            status_code=303,
+        )
+
+    vehicle = con.execute(
+        """
+        SELECT
+            v.*,
+            wl.active AS location_active,
+            wl.location_type
+        FROM vehicles v
+        LEFT JOIN warehouse_locations wl
+            ON wl.id = v.warehouse_location_id
+        WHERE v.id = ?
+        """,
+        (vehicle_id,),
+    ).fetchone()
+
+    if not vehicle:
+        con.close()
+
+        return RedirectResponse(
+            f"/jobs/{job_id}?message=Vehicle not found",
+            status_code=303,
+        )
+
+    if not vehicle["active"]:
+        con.close()
+
+        return RedirectResponse(
+            f"/jobs/{job_id}?message=Vehicle is retired",
+            status_code=303,
+        )
+
+    if vehicle["warehouse_location_id"] is None:
+        con.close()
+
+        return RedirectResponse(
+            f"/jobs/{job_id}?message=Vehicle is not linked to a warehouse vehicle location",
+            status_code=303,
+        )
+
+    if (
+        not vehicle["location_active"]
+        or vehicle["location_type"] != "Vehicle"
+    ):
+        con.close()
+
+        return RedirectResponse(
+            f"/jobs/{job_id}?message=Vehicle warehouse location is invalid",
+            status_code=303,
+        )
+
+    con.execute(
+        """
+        INSERT OR IGNORE INTO job_vehicles(
+            job_id,
+            vehicle_id
+        )
+        VALUES (?, ?)
+        """,
+        (
+            job_id,
+            vehicle_id,
+        ),
+    )
+
+    con.execute(
+        """
+        UPDATE jobs
+        SET updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        """,
+        (job_id,),
+    )
+
+    con.commit()
+    con.close()
+
+    return RedirectResponse(
+        f"/jobs/{job_id}?message=Vehicle assigned to job",
+        status_code=303,
+    )
+
+
+@router.post("/jobs/{job_id}/vehicles/{vehicle_id}/remove")
+def remove_vehicle_from_job(
+    job_id: int,
+    vehicle_id: int,
+):
+    con = connect()
+
+    loaded_assets = con.execute(
+        """
+        SELECT COUNT(*)
+        FROM assets
+        WHERE assigned_job_id = ?
+          AND location_id = (
+              SELECT warehouse_location_id
+              FROM vehicles
+              WHERE id = ?
+          )
+        """,
+        (
+            job_id,
+            vehicle_id,
+        ),
+    ).fetchone()[0]
+
+    if loaded_assets > 0:
+        con.close()
+
+        return RedirectResponse(
+            (
+                f"/jobs/{job_id}"
+                f"?message=Cannot remove vehicle while job equipment is loaded on it"
+            ),
+            status_code=303,
+        )
+
+    con.execute(
+        """
+        DELETE FROM job_vehicles
+        WHERE job_id = ?
+          AND vehicle_id = ?
+        """,
+        (
+            job_id,
+            vehicle_id,
+        ),
+    )
+
+    con.commit()
+    con.close()
+
+    return RedirectResponse(
+        f"/jobs/{job_id}?message=Vehicle removed from job",
+        status_code=303,
+    )
+
 @router.get("/jobs/{job_id}/pull", response_class=HTMLResponse)
 def job_pull_page(
     request: Request,
@@ -586,5 +797,168 @@ def job_pull_scan(
 
     return RedirectResponse(
         f"/jobs/{job_id}/pull?message={quote(result['message'])}",
+        status_code=303,
+    )
+
+@router.get("/jobs/{job_id}/load", response_class=HTMLResponse)
+def job_load_page(
+    request: Request,
+    job_id: int,
+    vehicle_id: int | None = None,
+    message: str = "",
+):
+    con = connect()
+
+    job = con.execute(
+        """
+        SELECT
+            j.*,
+            COALESCE(c.name, j.customer) AS customer_name
+        FROM jobs j
+        LEFT JOIN customers c
+            ON c.id = j.customer_id
+        WHERE j.id = ?
+        """,
+        (job_id,),
+    ).fetchone()
+
+    if not job:
+        con.close()
+
+        return RedirectResponse(
+            "/jobs?message=Job not found",
+            status_code=303,
+        )
+
+    vehicles = con.execute(
+        """
+        SELECT
+            v.id,
+            v.name,
+            v.vehicle_number,
+            v.warehouse_location_id,
+            wl.code AS location_code,
+            wl.name AS location_name
+        FROM job_vehicles jv
+        JOIN vehicles v
+            ON v.id = jv.vehicle_id
+        JOIN warehouse_locations wl
+            ON wl.id = v.warehouse_location_id
+        WHERE jv.job_id = ?
+          AND v.active = 1
+          AND wl.active = 1
+        ORDER BY v.name
+        """,
+        (job_id,),
+    ).fetchall()
+
+    if not vehicles:
+        con.close()
+
+        return RedirectResponse(
+            f"/jobs/{job_id}?message=Assign a vehicle before loading equipment",
+            status_code=303,
+        )
+
+    selected_vehicle = None
+
+    if vehicle_id is not None:
+        for vehicle in vehicles:
+            if vehicle["id"] == vehicle_id:
+                selected_vehicle = vehicle
+                break
+
+    if selected_vehicle is None:
+        selected_vehicle = vehicles[0]
+
+    prep = con.execute(
+        """
+        SELECT id
+        FROM warehouse_locations
+        WHERE code = 'PREP'
+          AND active = 1
+        """
+    ).fetchone()
+
+    prep_assets = []
+
+    if prep:
+        prep_assets = con.execute(
+            """
+            SELECT
+                a.id,
+                a.asset_id,
+                a.description,
+                a.status
+            FROM assets a
+            WHERE a.assigned_job_id = ?
+              AND a.location_id = ?
+              AND a.status = 'Reserved / Prep'
+            ORDER BY a.description, a.asset_id
+            """,
+            (
+                job_id,
+                prep["id"],
+            ),
+        ).fetchall()
+
+    loaded_assets = con.execute(
+        """
+        SELECT
+            a.id,
+            a.asset_id,
+            a.description,
+            a.status
+        FROM assets a
+        WHERE a.assigned_job_id = ?
+          AND a.location_id = ?
+        ORDER BY a.description, a.asset_id
+        """,
+        (
+            job_id,
+            selected_vehicle["warehouse_location_id"],
+        ),
+    ).fetchall()
+
+    total_pulled = len(prep_assets) + len(loaded_assets)
+    total_loaded = len(loaded_assets)
+
+    con.close()
+
+    return request.app.state.templates.TemplateResponse(
+        "job_load.html",
+        {
+            "request": request,
+            "job": job,
+            "vehicles": vehicles,
+            "selected_vehicle": selected_vehicle,
+            "prep_assets": prep_assets,
+            "loaded_assets": loaded_assets,
+            "total_pulled": total_pulled,
+            "total_loaded": total_loaded,
+            "message": message,
+        },
+    )
+
+
+@router.post("/jobs/{job_id}/load")
+def job_load_scan(
+    job_id: int,
+    vehicle_id: int = Form(...),
+    barcode_value: str = Form(...),
+):
+    result = load_asset_to_vehicle(
+        job_id,
+        vehicle_id,
+        barcode_value,
+        notes="Vehicle Load scan",
+    )
+
+    return RedirectResponse(
+        (
+            f"/jobs/{job_id}/load"
+            f"?vehicle_id={vehicle_id}"
+            f"&message={quote(result['message'])}"
+        ),
         status_code=303,
     )

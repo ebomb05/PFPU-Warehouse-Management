@@ -114,7 +114,11 @@ def create_vehicle(
 
 
 @router.get("/vehicles/{vehicle_id}", response_class=HTMLResponse)
-def vehicle_detail(request: Request, vehicle_id: int, message: str = ""):
+def vehicle_detail(
+    request: Request,
+    vehicle_id: int,
+    message: str = "",
+):
     con = connect()
 
     vehicle = con.execute(
@@ -134,6 +138,19 @@ def vehicle_detail(request: Request, vehicle_id: int, message: str = ""):
             status_code=303,
         )
 
+    vehicle_locations = con.execute(
+        """
+        SELECT
+            id,
+            code,
+            name
+        FROM warehouse_locations
+        WHERE active = 1
+          AND location_type = 'Vehicle'
+        ORDER BY code
+        """
+    ).fetchall()
+
     con.close()
 
     return request.app.state.templates.TemplateResponse(
@@ -141,6 +158,7 @@ def vehicle_detail(request: Request, vehicle_id: int, message: str = ""):
         {
             "request": request,
             "vehicle": vehicle,
+            "vehicle_locations": vehicle_locations,
             "message": message,
         },
     )
@@ -158,6 +176,7 @@ def update_vehicle(
     insurance_expiration: str = Form(""),
     last_maintenance_date: str = Form(""),
     next_maintenance_date: str = Form(""),
+    warehouse_location_id: int | None = Form(None),
     notes: str = Form(""),
 ):
     con = connect()
@@ -179,6 +198,47 @@ def update_vehicle(
             status_code=303,
         )
 
+    if warehouse_location_id is not None:
+        location = con.execute(
+            """
+            SELECT *
+            FROM warehouse_locations
+            WHERE id = ?
+              AND active = 1
+              AND location_type = 'Vehicle'
+            """,
+            (warehouse_location_id,),
+        ).fetchone()
+
+        if not location:
+            con.close()
+
+            return RedirectResponse(
+                f"/vehicles/{vehicle_id}?message=Invalid vehicle warehouse location",
+                status_code=303,
+            )
+
+        location_in_use = con.execute(
+            """
+            SELECT id
+            FROM vehicles
+            WHERE warehouse_location_id = ?
+              AND id != ?
+            """,
+            (
+                warehouse_location_id,
+                vehicle_id,
+            ),
+        ).fetchone()
+
+        if location_in_use:
+            con.close()
+
+            return RedirectResponse(
+                f"/vehicles/{vehicle_id}?message=That warehouse vehicle location is already linked to another vehicle",
+                status_code=303,
+            )
+
     con.execute(
         """
         UPDATE vehicles
@@ -191,6 +251,7 @@ def update_vehicle(
             insurance_expiration = ?,
             last_maintenance_date = ?,
             next_maintenance_date = ?,
+            warehouse_location_id = ?,
             notes = ?,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
@@ -205,6 +266,7 @@ def update_vehicle(
             insurance_expiration.strip(),
             last_maintenance_date.strip(),
             next_maintenance_date.strip(),
+            warehouse_location_id,
             notes.strip(),
             vehicle_id,
         ),
@@ -249,7 +311,10 @@ def toggle_vehicle_active(vehicle_id: int):
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
         """,
-        (new_status, vehicle_id),
+        (
+            new_status,
+            vehicle_id,
+        ),
     )
 
     con.commit()
