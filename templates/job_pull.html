@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>Job Pull / Prep</h2>
+
+        <h3>
+            {{ job["job_number"] }}
+            — {{ job["customer_name"] }}
+        </h3>
+
+        <p>
+            {{ job["event_name"] or "Job" }}
+
+            {% if job["venue"] %}
+                | {{ job["venue"] }}
+            {% endif %}
+        </p>
+
+        <p>
+            Out: {{ job["out_date"] }}
+
+            {% if job["out_time"] %}
+                {{ job["out_time"] }}
+            {% endif %}
+        </p>
+    </div>
+
+    <div>
+        <a href="/jobs/{{ job['id'] }}">
+            ← Back to Job
+        </a>
+    </div>
+</header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<section class="panel">
+
+    <h3>Pull Progress</h3>
+
+    <p>
+        <strong>
+            {{ total_pulled }} / {{ total_needed }}
+        </strong>
+        tracked assets currently pulled to PREP
+    </p>
+
+    {% if total_needed > 0 %}
+
+        {% set percent = ((total_pulled / total_needed) * 100) | int %}
+
+        <div style="
+            width: 100%;
+            height: 24px;
+            background: #ddd;
+            border-radius: 6px;
+            overflow: hidden;
+        ">
+
+            <div style="
+                width: {{ percent if percent <= 100 else 100 }}%;
+                height: 100%;
+                background: #4caf50;
+            ">
+            </div>
+
+        </div>
+
+    {% endif %}
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Scan Equipment</h3>
+
+    <p>
+        Scan an asset barcode or asset ID.
+        A valid item will be assigned to this job and moved to PREP.
+    </p>
+
+    <form
+        method="post"
+        action="/jobs/{{ job['id'] }}/pull"
+    >
+
+        <input
+            type="text"
+            name="barcode_value"
+            id="barcode-input"
+            placeholder="Scan barcode / asset ID"
+            autocomplete="off"
+            autofocus
+            required
+            style="
+                width: 100%;
+                box-sizing: border-box;
+                font-size: 1.6rem;
+                padding: 16px;
+                margin-bottom: 12px;
+            "
+        >
+
+        <button
+            type="submit"
+            class="big"
+            style="width: 100%;"
+        >
+            Pull to PREP
+        </button>
+
+    </form>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Warehouse Pull List</h3>
+
+    <p>
+        <strong>Required:</strong>
+        {{ pull_list["total_required"] }}
+
+        |
+
+        <strong>Location Assigned:</strong>
+        {{ pull_list["total_located"] }}
+
+        |
+
+        <strong>Location Not Assigned:</strong>
+        {{ pull_list["total_unassigned"] }}
+    </p>
+
+
+    {% for group in pull_list["groups"] %}
+
+    <section class="panel">
+
+        <h4>
+            {{ group["location_code"] }}
+
+            {% if group["location_name"] %}
+                — {{ group["location_name"] }}
+            {% endif %}
+        </h4>
+
+        <p>
+            {{ group["location_type"] }}
+        </p>
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Category</th>
+                    <th>Pull Qty</th>
+                    <th>Storage Notes</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+            {% for item in group["items"] %}
+
+                <tr>
+
+                    <td>
+                        <strong>
+                            {{ item["description"] }}
+                        </strong>
+                    </td>
+
+                    <td>
+                        {{ item["category"] or "" }}
+                    </td>
+
+                    <td>
+                        {{ item["qty_to_pull"] }}
+                    </td>
+
+                    <td>
+                        {{ item["storage_notes"] or "" }}
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </section>
+
+    {% endfor %}
+
+
+    {% if pull_list["unassigned"] %}
+
+    <section class="panel">
+
+        <h4>
+            ⚠ LOCATION NOT ASSIGNED
+        </h4>
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Category</th>
+                    <th>Qty Without Location</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+            {% for item in pull_list["unassigned"] %}
+
+                <tr class="danger">
+
+                    <td>
+                        <strong>
+                            {{ item["description"] }}
+                        </strong>
+                    </td>
+
+                    <td>
+                        {{ item["category"] or "" }}
+                    </td>
+
+                    <td>
+                        {{ item["qty_missing_location"] }}
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </section>
+
+    {% endif %}
+
+</section>
+
+
+<script>
+    const barcodeInput = document.getElementById("barcode-input");
+
+    if (barcodeInput) {
+        window.addEventListener("load", function () {
+            barcodeInput.focus();
+        });
+    }
+</script>
+
+{% endblock %}

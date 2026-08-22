@@ -1,1 +1,115 @@
-{% extends 'base.html' %}{% block content %}<header><h2>Inventory Master</h2><form><input name="q" placeholder="Search inventory" value="{{q}}"><button>Search</button></form></header><div class="panel"><table><tr><th>ID</th><th>Category</th><th>Prefix</th><th>Description</th><th>Total Qty</th><th>Tracked</th><th>Priority</th><th>Create Assets</th></tr>{% for r in rows %}<tr><td>{{r.id}}</td><td>{{r.category}}</td><td>{{r.prefix}}</td><td>{{r.description}}</td><td>{{r.qty_total}}</td><td>{{r.tracked}}</td><td>{{r.tracking_priority}}</td><td><form method="post" action="/assets/generate" class="inline"><input type="hidden" name="item_master_id" value="{{r.id}}"><input name="qty" type="number" min="1" max="500" value="1"><input name="location" value="Warehouse"><button>Generate</button></form></td></tr>{% endfor %}</table></div>{% endblock %}
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+
+    <div>
+        <h2>Inventory Master</h2>
+
+        <p>
+            Manage equipment quantities and warehouse storage assignments.
+        </p>
+    </div>
+
+    <form>
+
+        <input
+            name="q"
+            placeholder="Search inventory"
+            value="{{ q }}"
+        >
+
+        <button type="submit">
+            Search
+        </button>
+
+    </form>
+
+</header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<section class="panel">
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Prefix</th>
+                <th>Description</th>
+                <th>Total Qty</th>
+                <th>Storage Assigned</th>
+                <th>Unassigned</th>
+                <th>Tracked Assets</th>
+                <th>Priority</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for item in rows %}
+
+            <tr>
+
+                <td>
+                    {{ item["category"] or "" }}
+                </td>
+
+                <td>
+                    {{ item["prefix"] or "" }}
+                </td>
+
+                <td>
+
+                    <a href="/inventory/{{ item['id'] }}">
+
+                        <strong>
+                            {{ item["description"] }}
+                        </strong>
+
+                    </a>
+
+                </td>
+
+                <td>
+                    {{ item["qty_total"] }}
+                </td>
+
+                <td>
+                    {{ item["storage_assigned"] }}
+                </td>
+
+                <td>
+                    {{
+                        [item["qty_total"] - item["storage_assigned"], 0]
+                        | max
+                    }}
+                </td>
+
+                <td>
+                    {{ item["tracked"] }}
+                </td>
+
+                <td>
+                    {{ item["tracking_priority"] or "" }}
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</section>
+
+{% endblock %}

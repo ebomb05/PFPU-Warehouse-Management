@@ -1,7 +1,7 @@
 from datetime import datetime
 
 
-CURRENT_SCHEMA_VERSION = 5
+CURRENT_SCHEMA_VERSION = 6
 
 
 def run_migrations(con):
@@ -478,6 +478,60 @@ def run_migrations(con):
         )
 
         current_version = 5
+
+    con.commit()
+
+    # ---------------------------------------------------------
+    # Migration 6
+    # Master inventory storage locations.
+    # ---------------------------------------------------------
+    if current_version < 6:
+        con.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS item_storage_locations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                item_master_id INTEGER NOT NULL,
+                location_id INTEGER NOT NULL,
+
+                qty_assigned INTEGER NOT NULL DEFAULT 0,
+                priority INTEGER NOT NULL DEFAULT 100,
+
+                notes TEXT,
+
+                active INTEGER NOT NULL DEFAULT 1,
+
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (item_master_id)
+                    REFERENCES item_master(id),
+
+                FOREIGN KEY (location_id)
+                    REFERENCES warehouse_locations(id),
+
+                UNIQUE(item_master_id, location_id)
+            );
+            """
+        )
+
+        con.execute(
+            """
+            INSERT INTO schema_migrations(
+                version,
+                name,
+                applied_at
+            )
+            VALUES (?, ?, ?)
+            """,
+            (
+                6,
+                "Add master inventory storage locations",
+                datetime.now().isoformat(timespec="seconds"),
+            ),
+        )
+
+        current_version = 6
 
     con.commit()
 

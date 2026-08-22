@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+
+    <div>
+        <h2>{{ item["description"] }}</h2>
+
+        <p>
+            {{ item["category"] or "Inventory Item" }}
+        </p>
+    </div>
+
+    <div>
+        <a href="/inventory">
+            ← Back to Inventory
+        </a>
+    </div>
+
+</header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<section class="panel">
+
+    <h3>Inventory Summary</h3>
+
+    <table>
+
+        <tr>
+            <th>Total Owned</th>
+            <td>{{ item["qty_total"] }}</td>
+        </tr>
+
+        <tr>
+            <th>Assigned to Storage</th>
+            <td>{{ assigned_quantity }}</td>
+        </tr>
+
+        <tr>
+            <th>Location Not Assigned</th>
+            <td>{{ unassigned_quantity }}</td>
+        </tr>
+
+        <tr>
+            <th>Individual Tracked Assets</th>
+            <td>{{ tracked_count }}</td>
+        </tr>
+
+        <tr>
+            <th>Prefix</th>
+            <td>{{ item["prefix"] or "" }}</td>
+        </tr>
+
+        <tr>
+            <th>Tracking Priority</th>
+            <td>{{ item["tracking_priority"] or "" }}</td>
+        </tr>
+
+    </table>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Assign Storage Location</h3>
+
+    <p>
+        Assign some or all of this equipment to warehouse locations.
+        An item may be stored in more than one location.
+    </p>
+
+    <form
+        method="post"
+        action="/inventory/{{ item['id'] }}/storage/add"
+        class="rowform"
+    >
+
+        <select
+            name="location_id"
+            required
+        >
+
+        {% for location in available_locations %}
+
+            <option value="{{ location['id'] }}">
+
+                {{ location["code"] }}
+
+                {% if location["name"] %}
+                    — {{ location["name"] }}
+                {% endif %}
+
+            </option>
+
+        {% endfor %}
+
+        </select>
+
+
+        <input
+            type="number"
+            name="qty_assigned"
+            min="0"
+            value="1"
+            required
+        >
+
+
+        <input
+            type="number"
+            name="priority"
+            min="1"
+            value="100"
+            title="Lower number is pulled first"
+        >
+
+
+        <input
+            type="text"
+            name="notes"
+            placeholder="Storage notes"
+        >
+
+
+        <button type="submit">
+            Save Storage Location
+        </button>
+
+    </form>
+
+    <p>
+        <small>
+            Pull priority: lower numbers are used first when generating a pull list.
+        </small>
+    </p>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Storage Locations</h3>
+
+    {% if storage_locations %}
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Location</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Pull Priority</th>
+                <th>Notes</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for storage in storage_locations %}
+
+            <tr>
+
+                <td>
+                    <strong>
+                        {{ storage["location_code"] }}
+                    </strong>
+
+                    {% if storage["location_name"] %}
+                        — {{ storage["location_name"] }}
+                    {% endif %}
+                </td>
+
+                <td>
+                    {{ storage["location_type"] }}
+                </td>
+
+                <td>
+                    {{ storage["qty_assigned"] }}
+                </td>
+
+                <td>
+                    {{ storage["priority"] }}
+                </td>
+
+                <td>
+                    {{ storage["notes"] or "" }}
+                </td>
+
+                <td>
+
+                    <form
+                        method="post"
+                        action="/inventory/{{ item['id'] }}/storage/{{ storage['id'] }}/remove"
+                    >
+
+                        <button type="submit">
+                            Remove
+                        </button>
+
+                    </form>
+
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% else %}
+
+    <p>
+        No warehouse locations have been assigned to this item yet.
+    </p>
+
+    {% endif %}
+
+</section>
+
+{% endblock %}

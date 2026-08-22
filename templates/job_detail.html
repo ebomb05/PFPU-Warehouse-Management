@@ -234,4 +234,156 @@
 
 </section>
 
+<section class="panel">
+
+    <h3>Warehouse Pull List</h3>
+
+    {% if pull_list["total_required"] > 0 %}
+
+    <p>
+        <strong>Required:</strong>
+        {{ pull_list["total_required"] }}
+
+        |
+
+        <strong>Location Assigned:</strong>
+        {{ pull_list["total_located"] }}
+
+        |
+
+        <strong>Location Not Assigned:</strong>
+        {{ pull_list["total_unassigned"] }}
+    </p>
+
+
+    {% for group in pull_list["groups"] %}
+
+    <section class="panel">
+
+        <h4>
+            {{ group["location_code"] }}
+
+            {% if group["location_name"] %}
+                — {{ group["location_name"] }}
+            {% endif %}
+        </h4>
+
+        <p>
+            {{ group["location_type"] }}
+        </p>
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Category</th>
+                    <th>Pull Qty</th>
+                    <th>Storage Notes</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+            {% for item in group["items"] %}
+
+                <tr>
+
+                    <td>
+                        <strong>
+                            {{ item["description"] }}
+                        </strong>
+                    </td>
+
+                    <td>
+                        {{ item["category"] or "" }}
+                    </td>
+
+                    <td>
+                        {{ item["qty_to_pull"] }}
+                    </td>
+
+                    <td>
+                        {{ item["storage_notes"] or "" }}
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </section>
+
+    {% endfor %}
+
+
+    {% if pull_list["unassigned"] %}
+
+    <section class="panel">
+
+        <h4>
+            ⚠ LOCATION NOT ASSIGNED
+        </h4>
+
+        <p>
+            These required items do not have enough warehouse
+            location quantity assigned yet.
+        </p>
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Category</th>
+                    <th>Quantity Without Location</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+            {% for item in pull_list["unassigned"] %}
+
+                <tr class="danger">
+
+                    <td>
+                        <strong>
+                            {{ item["description"] }}
+                        </strong>
+                    </td>
+
+                    <td>
+                        {{ item["category"] or "" }}
+                    </td>
+
+                    <td>
+                        {{ item["qty_missing_location"] }}
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </section>
+
+    {% endif %}
+
+
+    {% else %}
+
+    <p>
+        No equipment requirements have been added to this job yet.
+    </p>
+
+    {% endif %}
+
+</section>
+
 {% endblock %}

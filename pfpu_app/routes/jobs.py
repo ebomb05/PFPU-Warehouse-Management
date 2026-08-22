@@ -1,10 +1,13 @@
 from datetime import datetime
+from urllib.parse import quote
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..database import connect
 from ..services.inventory_service import availability
+from ..services.pull_list_service import build_pull_list
+from ..services.job_pull_service import pull_asset_to_prep
 
 router = APIRouter()
 
@@ -252,6 +255,8 @@ def job_detail(request: Request, job_id: int, message: str = ""):
         """
     ).fetchall()
 
+    pull_list = build_pull_list(job_id)
+
     con.close()
 
     return request.app.state.templates.TemplateResponse(
@@ -262,6 +267,7 @@ def job_detail(request: Request, job_id: int, message: str = ""):
             "line_infos": line_infos,
             "items": items,
             "job_packs": job_packs,
+            "pull_list": pull_list,
             "message": message,
         },
     )
@@ -493,5 +499,92 @@ def apply_job_pack(
             f"/jobs/{job_id}"
             f"?message=Job Pack {pack['name']} applied successfully"
         ),
+        status_code=303,
+    )
+
+@router.get("/jobs/{job_id}/pull", response_class=HTMLResponse)
+def job_pull_page(
+    request: Request,
+    job_id: int,
+    message: str = "",
+):
+    con = connect()
+
+    job = con.execute(
+        """
+        SELECT
+            j.*,
+            COALESCE(c.name, j.customer) AS customer_name
+        FROM jobs j
+        LEFT JOIN customers c
+            ON c.id = j.customer_id
+        WHERE j.id = ?
+        """,
+        (job_id,),
+    ).fetchone()
+
+    if not job:
+        con.close()
+        return RedirectResponse(
+            "/jobs?message=Job not found",
+            status_code=303,
+        )
+
+    con.close()
+
+    pull_list = build_pull_list(job_id)
+
+    pull_list = build_pull_list(job_id)
+
+    total_needed = pull_list["total_required"]
+
+    con = connect()
+
+    total_pulled = con.execute(
+        """
+        SELECT COUNT(*)
+        FROM assets
+        WHERE assigned_job_id = ?
+          AND status = 'Reserved / Prep'
+        """,
+        (job_id,),
+    ).fetchone()[0]
+
+    con.close()
+
+    return request.app.state.templates.TemplateResponse(
+        "job_pull.html",
+        {
+            "request": request,
+            "job": job,
+            "pull_list": pull_list,
+            "total_needed": total_needed,
+            "total_pulled": total_pulled,
+            "message": message,
+        },
+    )
+
+
+@router.post("/jobs/{job_id}/pull")
+def job_pull_scan(
+    job_id: int,
+    barcode_value: str = Form(...),
+):
+    barcode_value = barcode_value.strip()
+
+    if not barcode_value:
+        return RedirectResponse(
+            f"/jobs/{job_id}/pull?message=Scan an asset barcode",
+            status_code=303,
+        )
+
+    result = pull_asset_to_prep(
+        job_id,
+        barcode_value,
+        notes="Job Pull scan",
+    )
+
+    return RedirectResponse(
+        f"/jobs/{job_id}/pull?message={quote(result['message'])}",
         status_code=303,
     )
