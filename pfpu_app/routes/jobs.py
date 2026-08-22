@@ -240,6 +240,18 @@ def job_detail(request: Request, job_id: int, message: str = ""):
         """
     ).fetchall()
 
+    job_packs = con.execute(
+        """
+        SELECT
+            id,
+            name,
+            description
+        FROM job_packs
+        WHERE active = 1
+        ORDER BY name
+        """
+    ).fetchall()
+
     con.close()
 
     return request.app.state.templates.TemplateResponse(
@@ -249,6 +261,7 @@ def job_detail(request: Request, job_id: int, message: str = ""):
             "job": job,
             "line_infos": line_infos,
             "items": items,
+            "job_packs": job_packs,
             "message": message,
         },
     )
@@ -342,5 +355,143 @@ def add_job_line(
 
     return RedirectResponse(
         f"/jobs/{job_id}",
+        status_code=303,
+    )
+
+@router.post("/jobs/{job_id}/apply-pack")
+def apply_job_pack(
+    job_id: int,
+    job_pack_id: int = Form(...),
+):
+    con = connect()
+
+    job = con.execute(
+        """
+        SELECT *
+        FROM jobs
+        WHERE id = ?
+        """,
+        (job_id,),
+    ).fetchone()
+
+    if not job:
+        con.close()
+
+        return RedirectResponse(
+            "/jobs?message=Job not found",
+            status_code=303,
+        )
+
+    pack = con.execute(
+        """
+        SELECT *
+        FROM job_packs
+        WHERE id = ?
+          AND active = 1
+        """,
+        (job_pack_id,),
+    ).fetchone()
+
+    if not pack:
+        con.close()
+
+        return RedirectResponse(
+            f"/jobs/{job_id}?message=Job Pack not found or inactive",
+            status_code=303,
+        )
+
+    pack_items = con.execute(
+        """
+        SELECT *
+        FROM job_pack_items
+        WHERE job_pack_id = ?
+        """,
+        (job_pack_id,),
+    ).fetchall()
+
+    if not pack_items:
+        con.close()
+
+        return RedirectResponse(
+            f"/jobs/{job_id}?message=Selected Job Pack contains no equipment",
+            status_code=303,
+        )
+
+    for pack_item in pack_items:
+
+        existing = con.execute(
+            """
+            SELECT *
+            FROM job_lines
+            WHERE job_id = ?
+              AND item_master_id = ?
+            """,
+            (
+                job_id,
+                pack_item["item_master_id"],
+            ),
+        ).fetchone()
+
+        pack_note = f"Job Pack: {pack['name']}"
+
+        if pack_item["notes"]:
+            pack_note += f" — {pack_item['notes']}"
+
+        if existing:
+            con.execute(
+                """
+                UPDATE job_lines
+                SET qty_needed = qty_needed + ?,
+                    notes = CASE
+                        WHEN notes IS NULL OR notes = ''
+                            THEN ?
+                        ELSE notes || ' | ' || ?
+                    END
+                WHERE id = ?
+                """,
+                (
+                    pack_item["qty_needed"],
+                    pack_note,
+                    pack_note,
+                    existing["id"],
+                ),
+            )
+
+        else:
+            con.execute(
+                """
+                INSERT INTO job_lines(
+                    job_id,
+                    item_master_id,
+                    qty_needed,
+                    notes
+                )
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    job_id,
+                    pack_item["item_master_id"],
+                    pack_item["qty_needed"],
+                    pack_note,
+                ),
+            )
+
+    con.execute(
+        """
+        UPDATE jobs
+        SET updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        """,
+        (job_id,),
+    )
+
+    con.commit()
+    con.close()
+
+    return RedirectResponse(
+        (
+            f"/jobs/{job_id}"
+            f"?message=Job Pack {pack['name']} applied successfully"
+        ),
         status_code=303,
     )

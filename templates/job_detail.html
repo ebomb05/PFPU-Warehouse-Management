@@ -53,6 +53,64 @@
 </section>
 {% endif %}
 
+<section class="panel">
+
+    <h3>Apply Job Pack</h3>
+
+    <p>
+        Add all equipment from a reusable Job Pack to this job.
+        Existing equipment quantities will be increased instead of duplicated.
+    </p>
+
+    {% if job_packs %}
+
+    <form
+        method="post"
+        action="/jobs/{{ job['id'] }}/apply-pack"
+        class="rowform"
+    >
+
+        <select
+            name="job_pack_id"
+            required
+        >
+
+            {% for pack in job_packs %}
+
+            <option value="{{ pack['id'] }}">
+
+                {{ pack["name"] }}
+
+                {% if pack["description"] %}
+                    — {{ pack["description"] }}
+                {% endif %}
+
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+        <button type="submit">
+            Apply Job Pack
+        </button>
+
+    </form>
+
+    {% else %}
+
+    <p>
+        No active Job Packs are available.
+    </p>
+
+    <a href="/job-packs">
+        Create a Job Pack
+    </a>
+
+    {% endif %}
+
+</section>
+
 
 <section class="panel">
 

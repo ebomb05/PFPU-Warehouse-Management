@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>Job Packs</h2>
+        <p>
+            Create reusable equipment packages for common jobs.
+        </p>
+    </div>
+</header>
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+<section class="panel">
+
+    <h3>Create Job Pack</h3>
+
+    <form
+        method="post"
+        action="/job-packs/create"
+        class="rowform"
+    >
+
+        <input
+            type="text"
+            name="name"
+            placeholder="Example: 3x3 Video Wall"
+            required
+        >
+
+        <input
+            type="text"
+            name="description"
+            placeholder="Description / purpose"
+        >
+
+        <button type="submit">
+            Create Job Pack
+        </button>
+
+    </form>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Job Pack Templates</h3>
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Job Pack</th>
+                <th>Description</th>
+                <th>Item Types</th>
+                <th>Total Quantity</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for pack in packs %}
+
+            <tr>
+
+                <td>
+                    <a href="/job-packs/{{ pack['id'] }}">
+                        <strong>
+                            {{ pack["name"] }}
+                        </strong>
+                    </a>
+                </td>
+
+                <td>
+                    {{ pack["description"] or "" }}
+                </td>
+
+                <td>
+                    {{ pack["item_count"] }}
+                </td>
+
+                <td>
+                    {{ pack["total_quantity"] }}
+                </td>
+
+                <td>
+                    {% if pack["active"] %}
+                        Active
+                    {% else %}
+                        Retired
+                    {% endif %}
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</section>
+
+{% endblock %}

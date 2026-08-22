@@ -1,7 +1,7 @@
 from datetime import datetime
 
 
-CURRENT_SCHEMA_VERSION = 4
+CURRENT_SCHEMA_VERSION = 5
 
 
 def run_migrations(con):
@@ -423,6 +423,61 @@ def run_migrations(con):
         )
 
         current_version = 4
+
+    con.commit()
+
+    # ---------------------------------------------------------
+    # Migration 5
+    # Reusable Job Pack templates.
+    # ---------------------------------------------------------
+    if current_version < 5:
+        con.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS job_packs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                description TEXT,
+                active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS job_pack_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_pack_id INTEGER NOT NULL,
+                item_master_id INTEGER NOT NULL,
+                qty_needed INTEGER NOT NULL DEFAULT 1,
+                notes TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (job_pack_id)
+                    REFERENCES job_packs(id),
+
+                FOREIGN KEY (item_master_id)
+                    REFERENCES item_master(id),
+
+                UNIQUE(job_pack_id, item_master_id)
+            );
+            """
+        )
+
+        con.execute(
+            """
+            INSERT INTO schema_migrations(
+                version,
+                name,
+                applied_at
+            )
+            VALUES (?, ?, ?)
+            """,
+            (
+                5,
+                "Add reusable Job Pack templates",
+                datetime.now().isoformat(timespec="seconds"),
+            ),
+        )
+
+        current_version = 5
 
     con.commit()
 

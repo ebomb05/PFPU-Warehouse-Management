@@ -13,6 +13,7 @@ from .routes import (
     dashboard,
     export,
     inventory,
+    job_packs,
     jobs,
     locations,
     scan,
@@ -42,6 +43,7 @@ def create_app() -> FastAPI:
     app.include_router(vehicles.router)
     app.include_router(assets.router)
     app.include_router(locations.router)
+    app.include_router(job_packs.router)
     app.include_router(jobs.router)
     app.include_router(scan.router)
     app.include_router(barcodes.router)
