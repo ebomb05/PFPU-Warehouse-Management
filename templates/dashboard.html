@@ -1,5 +1,105 @@
-{% extends 'base.html' %}{% block content %}
-<header><h2>Warehouse Dashboard</h2><p>Local rental inventory starter system.</p></header>
-<section class="cards">{% for k,v in stats.items() %}<div class="card"><span>{{k|upper}}</span><strong>{{v}}</strong></div>{% endfor %}</section>
-<section class="grid"><div class="panel"><h3>Upcoming / Active Jobs</h3><table><tr><th>Job</th><th>Customer</th><th>Out</th><th>Return</th><th>Status</th></tr>{% for j in jobs %}<tr><td><a href="/jobs/{{j.id}}">{{j.job_number}}</a></td><td>{{j.customer}}</td><td>{{j.out_date}}</td><td>{{j.return_date}}</td><td>{{j.status}}</td></tr>{% endfor %}</table></div><div class="panel"><h3>Tracking Priority</h3><table><tr><th>Priority</th><th>Lines</th><th>Qty</th></tr>{% for p in priorities %}<tr><td>{{p.tracking_priority or 'Unassigned'}}</td><td>{{p.c}}</td><td>{{p.q}}</td></tr>{% endfor %}</table></div></section>
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <h2>Warehouse Dashboard</h2>
+    <p>Local rental inventory starter system.</p>
+</header>
+
+
+<section class="cards">
+
+    {% for k, v in stats.items() %}
+
+    <div class="card">
+        <span>{{ k|upper }}</span>
+        <strong>{{ v }}</strong>
+    </div>
+
+    {% endfor %}
+
+</section>
+
+
+<section class="grid">
+
+    <div class="panel">
+
+        <h3>Upcoming / Active Jobs</h3>
+
+        <table>
+            <tr>
+                <th>Job</th>
+                <th>Customer</th>
+                <th>Out</th>
+                <th>Return</th>
+                <th>Status</th>
+            </tr>
+
+            {% for j in jobs %}
+
+            <tr>
+                <td>
+                    <a href="/jobs/{{ j.id }}">
+                        {{ j.job_number }}
+                    </a>
+                </td>
+
+                <td>{{ j.customer }}</td>
+                <td>{{ j.out_date }}</td>
+                <td>{{ j.return_date }}</td>
+                <td>{{ j.status }}</td>
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+    </div>
+
+
+    <div class="panel">
+
+        <h3>Tracking Priority</h3>
+
+        <table>
+            <tr>
+                <th>Priority</th>
+                <th>Lines</th>
+                <th>Qty</th>
+            </tr>
+
+            {% for p in priorities %}
+
+            <tr>
+                <td>{{ p.tracking_priority or "Unassigned" }}</td>
+                <td>{{ p.c }}</td>
+                <td>{{ p.q }}</td>
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+    </div>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Repair Management</h3>
+
+    <p>
+        View equipment currently in repair, update repair status,
+        track parts, and return repaired equipment to service.
+    </p>
+
+    <a href="/repairs">
+        Open Repair Management
+    </a>
+
+</section>
+
 {% endblock %}

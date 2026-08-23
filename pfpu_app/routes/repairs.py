@@ -16,12 +16,13 @@ router = APIRouter()
 @router.get("/repairs", response_class=HTMLResponse)
 def repairs_page(
     request: Request,
+    q: str = "",
+    status_filter: str = "",
     message: str = "",
 ):
     con = connect()
 
-    open_repairs = con.execute(
-        """
+    query = """
         SELECT
             rr.id,
             rr.asset_id,
@@ -39,8 +40,43 @@ def repairs_page(
         JOIN assets a
             ON a.id = rr.asset_id
         WHERE rr.closed_at IS NULL
-        ORDER BY rr.updated_at DESC, rr.id DESC
+    """
+
+    params = []
+
+    if q.strip():
+        query += """
+          AND (
+                a.asset_id LIKE ?
+                OR a.description LIKE ?
+                OR rr.issue LIKE ?
+                OR rr.notes LIKE ?
+              )
         """
+
+        search = f"%{q.strip()}%"
+
+        params.extend([
+            search,
+            search,
+            search,
+            search,
+        ])
+
+    if status_filter.strip():
+        query += """
+          AND rr.status = ?
+        """
+
+        params.append(status_filter.strip())
+
+    query += """
+        ORDER BY rr.updated_at DESC, rr.id DESC
+    """
+
+    open_repairs = con.execute(
+        query,
+        tuple(params),
     ).fetchall()
 
     recent_closed = con.execute(
@@ -76,6 +112,8 @@ def repairs_page(
             "request": request,
             "open_repairs": open_repairs,
             "recent_closed": recent_closed,
+            "q": q,
+            "status_filter": status_filter,
             "message": message,
         },
     )

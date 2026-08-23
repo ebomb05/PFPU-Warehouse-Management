@@ -5,24 +5,50 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..database import connect
+from ..services.asset_service import move_asset
+from ..services.repair_service import open_repair_record
 
 router = APIRouter()
 
 
 @router.get("/scan", response_class=HTMLResponse)
-def scan_page(request: Request, message: str = ""):
+def scan_page(
+    request: Request,
+    message: str = "",
+):
     con = connect()
+
     jobs = con.execute(
         """
-        SELECT id, job_number, customer, event_name
+        SELECT
+            id,
+            job_number,
+            customer,
+            event_name,
+            status
         FROM jobs
-        WHERE status NOT IN ('Cancelled','Returned')
-        ORDER BY out_date
+        WHERE status NOT IN (
+            'Cancelled',
+            'Completed',
+            'Returned'
+        )
+        ORDER BY out_date, job_number
         """
     ).fetchall()
+
     locations = con.execute(
-        "SELECT name FROM locations ORDER BY name"
+        """
+        SELECT
+            id,
+            code,
+            name,
+            location_type
+        FROM warehouse_locations
+        WHERE active = 1
+        ORDER BY location_type, code
+        """
     ).fetchall()
+
     con.close()
 
     return request.app.state.templates.TemplateResponse(
@@ -40,79 +66,151 @@ def scan_page(request: Request, message: str = ""):
 def scan(
     barcode_value: str = Form(...),
     action: str = Form(...),
-    to_location: str = Form(""),
-    job_id: Optional[int] = Form(None),
+    to_location_id: str = Form(""),
+    job_id: str = Form(""),
     notes: str = Form(""),
 ):
     barcode_value = barcode_value.strip()
+    notes = notes.strip()
+
+    to_location_id = to_location_id.strip()
+    job_id = job_id.strip()
+
+    to_location_id_value = (
+        int(to_location_id)
+        if to_location_id
+        else None
+    )
+
+    job_id_value = (
+        int(job_id)
+        if job_id
+        else None
+    )
+
     con = connect()
 
     asset = con.execute(
-        "SELECT * FROM assets WHERE barcode_value=? OR asset_id=?",
-        (barcode_value, barcode_value),
-    ).fetchone()
-
-    if not asset:
-        con.close()
-        return RedirectResponse(
-            "/scan?message=" + quote("Barcode not found. Create the asset first."),
-            status_code=303,
-        )
-
-    old_location = asset["current_location"]
-    status = asset["status"]
-    new_location = to_location or old_location
-    assigned_job = asset["assigned_job_id"]
-
-    if action == "return":
-        status = "Available"
-        assigned_job = None
-        if not to_location:
-            new_location = "Warehouse"
-    elif action == "prep":
-        status = "Reserved / Prep"
-        new_location = "Prep Area"
-    elif action == "checkout":
-        status = "Checked Out"
-        new_location = "Customer / Job Site"
-        assigned_job = job_id
-    elif action == "repair":
-        status = "Repair"
-        new_location = "Repair"
-
-    con.execute(
         """
-        UPDATE assets
-        SET status=?, current_location=?, assigned_job_id=?
-        WHERE id=?
-        """,
-        (status, new_location, assigned_job, asset["id"]),
-    )
-
-    con.execute(
-        """
-        INSERT INTO scan_log(
-            barcode_value, asset_id, action, from_location,
-            to_location, job_id, notes
-        )
-        VALUES(?,?,?,?,?,?,?)
+        SELECT
+            id,
+            asset_id,
+            status,
+            assigned_job_id,
+            location_id,
+            current_location
+        FROM assets
+        WHERE barcode_value = ?
+           OR asset_id = ?
         """,
         (
             barcode_value,
-            asset["asset_id"],
-            action,
-            old_location,
-            new_location,
-            job_id,
-            notes,
+            barcode_value,
         ),
-    )
+    ).fetchone()
 
-    con.commit()
     con.close()
 
-    message = f"{asset['asset_id']} updated: {action} → {new_location}"
+    if not asset:
+        return RedirectResponse(
+            "/scan?message="
+            + quote("Asset / QR not found. Create the asset first."),
+            status_code=303,
+        )
+
+    # ---------------------------------------------------------
+    # MANUAL LOCATION MOVE
+    # ---------------------------------------------------------
+    if action == "move":
+
+        if to_location_id_value is None:
+            return RedirectResponse(
+                "/scan?message="
+                + quote("Choose a destination location."),
+                status_code=303,
+            )
+
+        result = move_asset(
+            asset_id=asset["id"],
+            to_location_id=to_location_id_value,
+            action="Manual Move",
+            notes=notes,
+        )
+
+        return RedirectResponse(
+            "/scan?message=" + quote(result["message"]),
+            status_code=303,
+        )
+
+    # ---------------------------------------------------------
+    # REPAIR
+    # Opens a formal repair record instead of only changing status.
+    # ---------------------------------------------------------
+    if action == "repair":
+
+        issue = (
+            notes
+            if notes
+            else "Sent to repair from Scan Station"
+        )
+
+        result = open_repair_record(
+            barcode_value=barcode_value,
+            issue=issue,
+            notes=notes,
+            job_id=job_id_value,
+        )
+
+        return RedirectResponse(
+            "/scan?message=" + quote(result["message"]),
+            status_code=303,
+        )
+
+    # ---------------------------------------------------------
+    # JOB WORKFLOW ACTIONS
+    # These now have dedicated workflow pages/services.
+    # We intentionally do not bypass those rules here.
+    # ---------------------------------------------------------
+    if action == "prep":
+
+        if job_id_value is None:
+            message = "Choose a job before pulling equipment to PREP."
+        else:
+            message = (
+                "Use the Job Pull / PREP screen for job equipment. "
+                "This prevents bypassing quantity and conflict checks."
+            )
+
+        return RedirectResponse(
+            "/scan?message=" + quote(message),
+            status_code=303,
+        )
+
+    if action == "checkout":
+
+        message = (
+            "Use the Job Load / Dispatch workflow to check equipment "
+            "out to a job."
+        )
+
+        return RedirectResponse(
+            "/scan?message=" + quote(message),
+            status_code=303,
+        )
+
+    if action == "return":
+
+        message = (
+            "Use the job Return Equipment screen to check equipment in. "
+            "This preserves return inspection and job-status tracking."
+        )
+
+        return RedirectResponse(
+            "/scan?message=" + quote(message),
+            status_code=303,
+        )
+
     return RedirectResponse(
-        "/scan?message=" + quote(message),
+        "/scan?message=" + quote("Unknown Scan Station action."),
         status_code=303,
     )

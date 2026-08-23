@@ -1,1 +1,147 @@
-{% extends 'base.html' %}{% block content %}<header><h2>Scan Station</h2><p>Click barcode field, scan item, choose action.</p></header>{% if message %}<div class="notice">{{message}}</div>{% endif %}<section class="panel scan"><form method="post" action="/scan"><label>Barcode / Asset ID</label><input name="barcode_value" autofocus required class="scanbox" placeholder="Scan barcode here"><label>Action</label><select name="action"><option value="return">Return / Check In</option><option value="prep">Move to Prep Area</option><option value="checkout">Check Out to Job</option><option value="move">Move Location</option><option value="repair">Send to Repair</option></select><label>Job</label><select name="job_id"><option value="">No job</option>{% for j in jobs %}<option value="{{j.id}}">{{j.job_number}} - {{j.customer}} {{j.event_name}}</option>{% endfor %}</select><label>Location</label><select name="to_location"><option value="">Auto / unchanged</option>{% for l in locations %}<option>{{l.name}}</option>{% endfor %}</select><label>Notes</label><input name="notes"><button class="big">Submit Scan</button></form></section>{% endblock %}
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>Scan Station</h2>
+
+        <p>
+            Scan a QR / Asset ID and choose an action.
+        </p>
+    </div>
+</header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<section class="panel scan">
+
+    <form
+        method="post"
+        action="/scan"
+    >
+
+        <label>QR / Asset ID</label>
+
+        <input
+            name="barcode_value"
+            autofocus
+            required
+            class="scanbox"
+            autocomplete="off"
+            placeholder="Scan QR / Asset ID"
+        >
+
+
+        <label>Action</label>
+
+        <select
+            name="action"
+            required
+        >
+
+            <option value="move">
+                Move Location
+            </option>
+
+            <option value="repair">
+                Send to Repair
+            </option>
+
+            <option value="prep">
+                Job Pull → PREP
+            </option>
+
+            <option value="checkout">
+                Check Out to Job
+            </option>
+
+            <option value="return">
+                Return / Check In
+            </option>
+
+        </select>
+
+
+        <label>Job</label>
+
+        <select name="job_id">
+
+            <option value="">
+                No job
+            </option>
+
+            {% for job in jobs %}
+
+            <option value="{{ job['id'] }}">
+                {{ job["job_number"] }}
+                — {{ job["customer"] }}
+                {{ job["event_name"] or "" }}
+                [{{ job["status"] }}]
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+
+        <label>Destination Location</label>
+
+        <select name="to_location_id">
+
+            <option value="">
+                Select destination
+            </option>
+
+            {% for location in locations %}
+
+            <option value="{{ location['id'] }}">
+                {{ location["code"] }}
+                — {{ location["name"] }}
+                ({{ location["location_type"] }})
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+
+        <label>Notes / Repair Issue</label>
+
+        <input
+            name="notes"
+            placeholder="Optional notes"
+        >
+
+
+        <button
+            class="big"
+            type="submit"
+        >
+            Submit Scan
+        </button>
+
+    </form>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Job Workflow Notice</h3>
+
+    <p>
+        Job Pull, Checkout, and Return use their dedicated job workflow
+        screens so inventory quantities, vehicle movement, inspections,
+        conflicts, and job status remain accurate.
+    </p>
+
+</section>
+
+{% endblock %}

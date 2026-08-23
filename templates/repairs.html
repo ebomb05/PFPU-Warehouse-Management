@@ -97,6 +97,51 @@
 
 <section class="panel">
 
+<form
+    method="get"
+    action="/repairs"
+    style="margin-bottom: 18px;"
+>
+
+    <input
+        name="q"
+        value="{{ q }}"
+        placeholder="Search asset, description, issue, or notes"
+    >
+
+    <select name="status_filter">
+
+        <option value="">
+            All open statuses
+        </option>
+
+        {% for status in [
+            "Repair",
+            "Waiting for Parts",
+            "Out of Commission",
+            "Needs Replacement",
+            "Dead"
+        ] %}
+
+        <option
+            value="{{ status }}"
+            {% if status_filter == status %}
+                selected
+            {% endif %}
+        >
+            {{ status }}
+        </option>
+
+        {% endfor %}
+
+    </select>
+
+    <button type="submit">
+        Filter Repairs
+    </button>
+
+</form>
+
     <h3>Open Repairs</h3>
 
     {% if open_repairs %}
