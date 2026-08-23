@@ -1,7 +1,7 @@
 from datetime import datetime
 
 
-CURRENT_SCHEMA_VERSION = 7
+CURRENT_SCHEMA_VERSION = 8
 
 
 def run_migrations(con):
@@ -581,7 +581,150 @@ def run_migrations(con):
 
     con.commit()
 
+    # ---------------------------------------------------------
+    # Migration 8
+    # Warehouse audit sessions, expected asset snapshots,
+    # and scan results.
+    # ---------------------------------------------------------
+    if current_version < 8:
+        con.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS audit_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
 
+                audit_type TEXT NOT NULL DEFAULT 'Location',
+
+                location_id INTEGER,
+
+                status TEXT NOT NULL DEFAULT 'Open',
+
+                notes TEXT,
+
+                started_by INTEGER,
+                started_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+                completed_by INTEGER,
+                completed_at TEXT,
+
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (location_id)
+                    REFERENCES warehouse_locations(id),
+
+                FOREIGN KEY (started_by)
+                    REFERENCES users(id),
+
+                FOREIGN KEY (completed_by)
+                    REFERENCES users(id)
+            );
+
+
+            CREATE TABLE IF NOT EXISTS audit_expected_assets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                audit_session_id INTEGER NOT NULL,
+                asset_id INTEGER NOT NULL,
+
+                expected_location_id INTEGER,
+
+                expected_status TEXT,
+                expected_job_id INTEGER,
+
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (audit_session_id)
+                    REFERENCES audit_sessions(id),
+
+                FOREIGN KEY (asset_id)
+                    REFERENCES assets(id),
+
+                FOREIGN KEY (expected_location_id)
+                    REFERENCES warehouse_locations(id),
+
+                FOREIGN KEY (expected_job_id)
+                    REFERENCES jobs(id),
+
+                UNIQUE(audit_session_id, asset_id)
+            );
+
+
+            CREATE TABLE IF NOT EXISTS audit_scans (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                audit_session_id INTEGER NOT NULL,
+
+                barcode_value TEXT NOT NULL,
+
+                asset_id INTEGER,
+
+                scanned_location_id INTEGER,
+
+                scan_result TEXT NOT NULL,
+
+                notes TEXT,
+
+                scanned_by INTEGER,
+                scanned_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (audit_session_id)
+                    REFERENCES audit_sessions(id),
+
+                FOREIGN KEY (asset_id)
+                    REFERENCES assets(id),
+
+                FOREIGN KEY (scanned_location_id)
+                    REFERENCES warehouse_locations(id),
+
+                FOREIGN KEY (scanned_by)
+                    REFERENCES users(id)
+            );
+
+
+            CREATE INDEX IF NOT EXISTS
+            idx_audit_sessions_status
+            ON audit_sessions(status);
+
+
+            CREATE INDEX IF NOT EXISTS
+            idx_audit_expected_session
+            ON audit_expected_assets(audit_session_id);
+
+
+            CREATE INDEX IF NOT EXISTS
+            idx_audit_expected_asset
+            ON audit_expected_assets(asset_id);
+
+
+            CREATE INDEX IF NOT EXISTS
+            idx_audit_scans_session
+            ON audit_scans(audit_session_id);
+
+
+            CREATE INDEX IF NOT EXISTS
+            idx_audit_scans_asset
+            ON audit_scans(asset_id);
+            """
+        )
+
+        con.execute(
+            """
+            INSERT INTO schema_migrations(
+                version,
+                name,
+                applied_at
+            )
+            VALUES (?, ?, ?)
+            """,
+            (
+                8,
+                "Add warehouse audit system",
+                datetime.now().isoformat(timespec="seconds"),
+            ),
+        )
+
+        current_version = 8
+
+    con.commit()
 
 def get_schema_version(con):
     try:

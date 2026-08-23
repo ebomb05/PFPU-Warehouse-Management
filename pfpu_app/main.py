@@ -8,6 +8,7 @@ from .config import APP_TITLE, BARCODE_DIR, EXCEL_PATH, STATIC_DIR, TEMPLATE_DIR
 from .database import initialize_schema
 from .routes import (
     assets,
+    audits,
     barcodes,
     customers,
     dashboard,
@@ -16,6 +17,7 @@ from .routes import (
     job_packs,
     jobs,
     locations,
+    lost_found,
     repairs,
     scan,
     vehicles,
@@ -44,12 +46,14 @@ def create_app() -> FastAPI:
     app.include_router(vehicles.router)
     app.include_router(assets.router)
     app.include_router(locations.router)
+    app.include_router(lost_found.router)
     app.include_router(job_packs.router)
     app.include_router(jobs.router)
     app.include_router(repairs.router)
     app.include_router(scan.router)
     app.include_router(barcodes.router)
     app.include_router(export.router)
+    app.include_router(audits.router)
 
     return app
 

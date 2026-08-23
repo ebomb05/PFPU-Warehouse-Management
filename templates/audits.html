@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>Warehouse Audits</h2>
+        <p>
+            Start a physical inventory audit for a warehouse location.
+        </p>
+    </div>
+</header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<section class="panel">
+
+    <h3>Start Location Audit</h3>
+
+    <form
+        method="post"
+        action="/audits/start"
+    >
+
+        <label>Location</label>
+
+        <select
+            name="location_id"
+            required
+        >
+
+            {% for location in locations %}
+
+            <option value="{{ location['id'] }}">
+                {{ location["code"] }}
+                — {{ location["name"] }}
+                ({{ location["location_type"] }})
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+
+        <input
+            name="notes"
+            placeholder="Audit notes"
+        >
+
+
+        <button
+            type="submit"
+            class="big"
+        >
+            Start Audit
+        </button>
+
+    </form>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Recent Audits</h3>
+
+    {% if sessions %}
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Audit</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Started</th>
+                <th>Completed</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for session in sessions %}
+
+        <tr>
+
+            <td>
+                <a href="/audits/{{ session['id'] }}">
+                    Audit #{{ session["id"] }}
+                </a>
+            </td>
+
+            <td>
+                {{ session["location_code"] }}
+                — {{ session["location_name"] }}
+            </td>
+
+            <td>
+                {{ session["status"] }}
+            </td>
+
+            <td>
+                {{ session["started_at"] }}
+            </td>
+
+            <td>
+                {{ session["completed_at"] or "" }}
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% else %}
+
+    <p>No audit history yet.</p>
+
+    {% endif %}
+
+</section>
+
+{% endblock %}

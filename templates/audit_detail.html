@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+
+    <div>
+
+        <h2>
+            Audit #{{ summary["audit"]["id"] }}
+        </h2>
+
+        <h3>
+            {{ summary["audit"]["location_code"] }}
+            — {{ summary["audit"]["location_name"] }}
+        </h3>
+
+        <p>
+            Status:
+            <strong>
+                {{ summary["audit"]["status"] }}
+            </strong>
+        </p>
+
+    </div>
+
+    <div>
+        <a href="/audits">
+            ← Back to Audits
+        </a>
+    </div>
+
+</header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<section class="panel">
+
+    <h3>Audit Summary</h3>
+
+    <table>
+
+        <tr>
+            <th>Expected</th>
+            <td>{{ summary["expected_count"] }}</td>
+        </tr>
+
+        <tr>
+            <th>Correct</th>
+            <td>{{ summary["correct_count"] }}</td>
+        </tr>
+
+        <tr>
+            <th>Missing</th>
+            <td>{{ summary["missing_count"] }}</td>
+        </tr>
+
+        <tr>
+            <th>Wrong Location</th>
+            <td>{{ summary["wrong_location_count"] }}</td>
+        </tr>
+
+        <tr>
+            <th>Unexpected</th>
+            <td>{{ summary["unexpected_count"] }}</td>
+        </tr>
+
+        <tr>
+            <th>Duplicates</th>
+            <td>{{ summary["duplicate_count"] }}</td>
+        </tr>
+
+        <tr>
+            <th>Unknown</th>
+            <td>{{ summary["unknown_count"] }}</td>
+        </tr>
+
+    </table>
+
+</section>
+
+
+{% if summary["audit"]["status"] == "Open" %}
+
+<section class="panel">
+
+    <h3>Scan Asset</h3>
+
+    <form
+        method="post"
+        action="/audits/{{ summary['audit']['id'] }}/scan"
+    >
+
+        <input
+            name="barcode_value"
+            id="audit-scan"
+            placeholder="Scan QR / Asset ID"
+            autocomplete="off"
+            autofocus
+            required
+            style="
+                width: 100%;
+                box-sizing: border-box;
+                font-size: 1.6rem;
+                padding: 16px;
+                margin-bottom: 10px;
+            "
+        >
+
+        <input
+            name="notes"
+            placeholder="Optional scan notes"
+            style="
+                width: 100%;
+                box-sizing: border-box;
+                margin-bottom: 10px;
+            "
+        >
+
+        <button
+            type="submit"
+            class="big"
+            style="width: 100%;"
+        >
+            Record Audit Scan
+        </button>
+
+    </form>
+
+</section>
+
+{% endif %}
+
+
+<section class="panel">
+
+    <h3>Missing Assets</h3>
+
+    {% if summary["missing_assets"] %}
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Asset</th>
+                <th>Description</th>
+                <th>Expected Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for asset in summary["missing_assets"] %}
+
+        <tr class="danger">
+
+            <td>
+                <strong>
+                    {{ asset["asset_code"] }}
+                </strong>
+            </td>
+
+            <td>
+                {{ asset["description"] }}
+            </td>
+
+            <td>
+                {{ asset["expected_status"] }}
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% else %}
+
+    <p>No expected assets are currently missing from the scan.</p>
+
+    {% endif %}
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Scan History</h3>
+
+    {% if summary["scans"] %}
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Asset / Value</th>
+                <th>Result</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for scan in summary["scans"] %}
+
+        <tr>
+
+            <td>
+                {{ scan["scanned_at"] }}
+            </td>
+
+            <td>
+                {{ scan["asset_code"] or scan["barcode_value"] }}
+            </td>
+
+            <td>
+                <strong>
+                    {{ scan["scan_result"] }}
+                </strong>
+            </td>
+
+            <td>
+                {{ scan["notes"] or "" }}
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% else %}
+
+    <p>No scans recorded yet.</p>
+
+    {% endif %}
+
+</section>
+
+
+{% if summary["audit"]["status"] == "Open" %}
+
+<section class="panel">
+
+    <h3>Complete Audit</h3>
+
+    <p>
+        Completing the audit freezes the final results.
+        Missing or unexpected items can then be investigated separately.
+    </p>
+
+    <form
+        method="post"
+        action="/audits/{{ summary['audit']['id'] }}/complete"
+    >
+
+        <button
+            type="submit"
+            class="big"
+        >
+            Complete Audit
+        </button>
+
+    </form>
+
+</section>
+
+{% endif %}
+
+
+<script>
+
+    const auditScan =
+        document.getElementById("audit-scan");
+
+    if (auditScan) {
+
+        window.addEventListener(
+            "load",
+            function () {
+                auditScan.focus();
+            }
+        );
+
+    }
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>Lost / Found</h2>
+        <p>
+            Locate equipment, report missing assets,
+            and return found equipment to its assigned storage location.
+        </p>
+    </div>
+</header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<section class="panel">
+
+    <h3>Scan / Find Asset</h3>
+
+    <form method="get" action="/lost-found">
+
+        <input
+            name="q"
+            value="{{ q }}"
+            placeholder="Scan QR / Asset ID"
+            autocomplete="off"
+            autofocus
+            required
+            style="
+                width: 100%;
+                box-sizing: border-box;
+                font-size: 1.5rem;
+                padding: 14px;
+                margin-bottom: 10px;
+            "
+        >
+
+        <button
+            type="submit"
+            class="big"
+        >
+            Find Asset
+        </button>
+
+    </form>
+
+</section>
+
+
+{% if asset_info %}
+
+    {% if asset_info["success"] %}
+
+    <section class="panel">
+
+        <h3>
+            {{ asset_info["asset"]["asset_id"] }}
+            — {{ asset_info["asset"]["description"] }}
+        </h3>
+
+        <p>
+            <strong>Status:</strong>
+            {{ asset_info["asset"]["status"] }}
+        </p>
+
+        <p>
+            <strong>Recorded Location:</strong>
+
+            {{ asset_info["asset"]["current_location_code"]
+                or asset_info["asset"]["current_location"]
+                or "Unknown" }}
+
+            {% if asset_info["asset"]["current_location_name"] %}
+                —
+                {{ asset_info["asset"]["current_location_name"] }}
+            {% endif %}
+        </p>
+
+        {% if asset_info["asset"]["assigned_job_number"] %}
+
+        <p>
+            <strong>Assigned Job:</strong>
+            {{ asset_info["asset"]["assigned_job_number"] }}
+        </p>
+
+        {% endif %}
+
+
+        {% if asset_info["primary_storage"] %}
+
+        <p>
+            <strong>Normal Storage:</strong>
+            {{ asset_info["primary_storage"]["code"] }}
+            —
+            {{ asset_info["primary_storage"]["name"] }}
+        </p>
+
+        {% else %}
+
+        <p>
+            <strong>Normal Storage:</strong>
+            Not assigned
+        </p>
+
+        {% endif %}
+
+
+        <p>
+            <strong>{{ asset_info["message"] }}</strong>
+        </p>
+
+    </section>
+
+
+    <section class="panel">
+
+        <h3>Asset Action</h3>
+
+        {% if asset_info["asset"]["status"] == "Lost / Missing" %}
+
+        <p>
+            This asset is currently reported missing.
+            If it has been physically found, return it to its assigned shelf.
+        </p>
+
+        <form
+            method="post"
+            action="/lost-found/found"
+        >
+
+            <input
+                type="hidden"
+                name="barcode_value"
+                value="{{ asset_info['asset']['asset_id'] }}"
+            >
+
+            <input
+                name="notes"
+                placeholder="Where was it found? / notes"
+                style="
+                    width: 100%;
+                    box-sizing: border-box;
+                    margin-bottom: 10px;
+                "
+            >
+
+            <button
+                type="submit"
+                class="big"
+            >
+                Found — Return to Storage
+            </button>
+
+        </form>
+
+        {% else %}
+
+        <p>
+            If this asset cannot be physically located,
+            mark it Lost / Missing.
+        </p>
+
+        <form
+            method="post"
+            action="/lost-found/missing"
+        >
+
+            <input
+                type="hidden"
+                name="barcode_value"
+                value="{{ asset_info['asset']['asset_id'] }}"
+            >
+
+            <input
+                name="notes"
+                placeholder="Missing details / where it was last seen"
+                style="
+                    width: 100%;
+                    box-sizing: border-box;
+                    margin-bottom: 10px;
+                "
+            >
+
+            <button
+                type="submit"
+                class="big"
+            >
+                Mark Lost / Missing
+            </button>
+
+        </form>
+
+        {% endif %}
+
+    </section>
+
+
+    <section class="panel">
+
+        <h3>Recent Movement History</h3>
+
+        {% if asset_info["history"] %}
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Action</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Job</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+            {% for move in asset_info["history"] %}
+
+                <tr>
+
+                    <td>
+                        {{ move["moved_at"] }}
+                    </td>
+
+                    <td>
+                        {{ move["action"] }}
+                    </td>
+
+                    <td>
+                        {{ move["from_code"] or "" }}
+                    </td>
+
+                    <td>
+                        {{ move["to_code"] or "" }}
+                    </td>
+
+                    <td>
+                        {{ move["job_id"] or "" }}
+                    </td>
+
+                    <td>
+                        {{ move["notes"] or "" }}
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+        {% else %}
+
+        <p>No movement history found.</p>
+
+        {% endif %}
+
+    </section>
+
+    {% else %}
+
+    <section class="panel">
+        <strong>
+            {{ asset_info["message"] }}
+        </strong>
+    </section>
+
+    {% endif %}
+
+{% endif %}
+
+
+<section class="panel">
+
+    <h3>Currently Missing Assets</h3>
+
+    {% if open_missing %}
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Asset</th>
+                <th>Description</th>
+                <th>Last Known Location</th>
+                <th>Job</th>
+                <th>Reported</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for missing in open_missing %}
+
+            <tr>
+
+                <td>
+                    <a href="/lost-found?q={{ missing['asset_code'] }}">
+                        <strong>
+                            {{ missing["asset_code"] }}
+                        </strong>
+                    </a>
+                </td>
+
+                <td>
+                    {{ missing["description"] or "" }}
+                </td>
+
+                <td>
+                    {{ missing["current_location"] or "Unknown" }}
+                </td>
+
+                <td>
+                    {{ missing["job_number"] or "" }}
+                </td>
+
+                <td>
+                    {{ missing["created_at"] }}
+                </td>
+
+                <td>
+                    {{ missing["message"] }}
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% else %}
+
+    <p>
+        No assets are currently reported missing.
+    </p>
+
+    {% endif %}
+
+</section>
+
+
+{% endblock %}
