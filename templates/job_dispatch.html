@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+
+    <div>
+        <h2>Dispatch to Job Site</h2>
+
+        <h3>
+            {{ job["job_number"] }}
+            — {{ job["customer_name"] }}
+        </h3>
+
+        <p>
+            {{ job["event_name"] or "Job" }}
+
+            {% if job["venue"] %}
+                | {{ job["venue"] }}
+            {% endif %}
+        </p>
+    </div>
+
+    <div>
+        <a href="/jobs/{{ job['id'] }}">
+            ← Back to Job
+        </a>
+    </div>
+
+</header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<section class="panel">
+
+    <h3>Dispatch Vehicle</h3>
+
+    <form
+        method="get"
+        action="/jobs/{{ job['id'] }}/dispatch"
+    >
+
+        <label>Vehicle</label>
+
+        <select
+            name="vehicle_id"
+            onchange="this.form.submit()"
+        >
+
+        {% for vehicle in vehicles %}
+
+            <option
+                value="{{ vehicle['id'] }}"
+                {% if vehicle["id"] == selected_vehicle["id"] %}
+                    selected
+                {% endif %}
+            >
+                {{ vehicle["name"] }}
+                — {{ vehicle["location_code"] }}
+            </option>
+
+        {% endfor %}
+
+        </select>
+
+    </form>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Dispatch Progress</h3>
+
+    <p style="font-size: 1.5rem;">
+
+        <strong>
+            {{ total_dispatched }} / {{ total_dispatchable }}
+        </strong>
+
+        tracked assets dispatched to JOB-SITE
+
+    </p>
+
+    {% if total_dispatchable > 0 %}
+
+        {% set percent = ((total_dispatched / total_dispatchable) * 100) | int %}
+
+        <div style="
+            width: 100%;
+            height: 24px;
+            background: #ddd;
+            border-radius: 6px;
+            overflow: hidden;
+        ">
+
+            <div style="
+                width: {{ percent if percent <= 100 else 100 }}%;
+                height: 100%;
+                background: #4caf50;
+            ">
+            </div>
+
+        </div>
+
+    {% endif %}
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Scan Equipment to Job Site</h3>
+
+    <p>
+        Scan equipment currently loaded on
+        {{ selected_vehicle["name"] }}.
+    </p>
+
+    <form
+        method="post"
+        action="/jobs/{{ job['id'] }}/dispatch"
+    >
+
+        <input
+            type="hidden"
+            name="vehicle_id"
+            value="{{ selected_vehicle['id'] }}"
+        >
+
+        <input
+            type="text"
+            name="barcode_value"
+            id="barcode-input"
+            placeholder="Scan QR / Asset ID"
+            autocomplete="off"
+            autofocus
+            required
+            style="
+                width: 100%;
+                box-sizing: border-box;
+                font-size: 1.6rem;
+                padding: 16px;
+                margin-bottom: 12px;
+            "
+        >
+
+        <button
+            type="submit"
+            class="big"
+            style="width: 100%;"
+        >
+            Dispatch to JOB-SITE
+        </button>
+
+    </form>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Still on {{ selected_vehicle["name"] }}</h3>
+
+    {% if loaded_assets %}
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Asset</th>
+                <th>Description</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for asset in loaded_assets %}
+
+            <tr>
+                <td>
+                    <strong>{{ asset["asset_id"] }}</strong>
+                </td>
+
+                <td>
+                    {{ asset["description"] }}
+                </td>
+
+                <td>
+                    {{ asset["status"] }}
+                </td>
+            </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% else %}
+
+    <p>
+        No loaded equipment remains on this vehicle.
+    </p>
+
+    {% endif %}
+
+</section>
+
+
+<section class="panel">
+
+    <h3>At JOB-SITE</h3>
+
+    {% if dispatched_assets %}
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Asset</th>
+                <th>Description</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for asset in dispatched_assets %}
+
+            <tr>
+                <td>
+                    <strong>{{ asset["asset_id"] }}</strong>
+                </td>
+
+                <td>
+                    {{ asset["description"] }}
+                </td>
+
+                <td>
+                    {{ asset["status"] }}
+                </td>
+            </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% else %}
+
+    <p>
+        No tracked assets have been dispatched yet.
+    </p>
+
+    {% endif %}
+
+</section>
+
+
+<script>
+
+    const barcodeInput =
+        document.getElementById("barcode-input");
+
+    if (barcodeInput) {
+
+        window.addEventListener(
+            "load",
+            function () {
+                barcodeInput.focus();
+            }
+        );
+
+    }
+
+</script>
+
+{% endblock %}

@@ -3,7 +3,7 @@ from .asset_service import move_asset
 from .job_status_service import refresh_job_status
 
 
-def pull_asset_to_prep(
+def return_asset_to_prep(
     job_id: int,
     barcode_value: str,
     *,
@@ -11,16 +11,16 @@ def pull_asset_to_prep(
     notes: str = "",
 ):
     """
-    Validate and pull one tracked asset into PREP for a job.
+    Return one tracked asset from JOB-SITE back to PREP.
 
     Rules:
-    - Job must exist and be active.
+    - Job must exist and not be cancelled.
     - Asset must exist.
-    - Asset's item must be required by the job.
-    - Required quantity must not already be fully pulled.
-    - Asset cannot belong to a different active job.
-    - PREP location must exist and be active.
-    - Successful pull assigns the asset to the job and moves it to PREP.
+    - Asset must belong to this job.
+    - Asset must currently be at JOB-SITE.
+    - Asset must currently be Checked Out.
+    - Successful return moves the asset to PREP.
+    - Job assignment remains in place until the return is fully processed.
     """
 
     barcode_value = barcode_value.strip()
@@ -32,16 +32,17 @@ def pull_asset_to_prep(
         SELECT *
         FROM jobs
         WHERE id = ?
-          AND status NOT IN ('Cancelled', 'Returned')
+          AND status != 'Cancelled'
         """,
         (job_id,),
     ).fetchone()
 
     if not job:
         con.close()
+
         return {
             "success": False,
-            "message": "Job not found or inactive",
+            "message": "Job not found or cancelled",
         }
 
     asset = con.execute(
@@ -65,66 +66,57 @@ def pull_asset_to_prep(
 
     if not asset:
         con.close()
+
         return {
             "success": False,
             "message": "Asset not found",
         }
 
-    requirement = con.execute(
+    if asset["assigned_job_id"] != job_id:
+        con.close()
+
+        return {
+            "success": False,
+            "message": (
+                f"{asset['asset_id']} is not assigned to this job"
+            ),
+        }
+
+    job_site = con.execute(
         """
-        SELECT *
-        FROM job_lines
-        WHERE job_id = ?
-          AND item_master_id = ?
+        SELECT id
+        FROM warehouse_locations
+        WHERE code = ?
+          AND active = 1
         """,
-        (
-            job_id,
-            asset["item_master_id"],
-        ),
+        ("JOB-SITE",),
     ).fetchone()
 
-    if not requirement:
+    if not job_site:
         con.close()
+
+        return {
+            "success": False,
+            "message": "JOB-SITE location is missing or inactive",
+        }
+
+    if asset["location_id"] != job_site["id"]:
+        con.close()
+
         return {
             "success": False,
             "message": (
-                f"{asset['asset_id']} is not required for this job"
+                f"{asset['asset_id']} is not currently at JOB-SITE"
             ),
         }
 
-    if (
-        asset["assigned_job_id"] is not None
-        and asset["assigned_job_id"] != job_id
-    ):
+    if asset["status"] != "Checked Out":
         con.close()
+
         return {
             "success": False,
             "message": (
-                f"{asset['asset_id']} is assigned to another job"
-            ),
-        }
-
-    pulled_count = con.execute(
-        """
-        SELECT COUNT(*)
-        FROM assets
-        WHERE assigned_job_id = ?
-          AND item_master_id = ?
-          AND status = 'Reserved / Prep'
-        """,
-        (
-            job_id,
-            asset["item_master_id"],
-        ),
-    ).fetchone()[0]
-
-    if pulled_count >= requirement["qty_needed"]:
-        con.close()
-        return {
-            "success": False,
-            "message": (
-                f"Required quantity already pulled for "
-                f"{asset['asset_id']}"
+                f"{asset['asset_id']} is not ready for return"
             ),
         }
 
@@ -132,13 +124,15 @@ def pull_asset_to_prep(
         """
         SELECT *
         FROM warehouse_locations
-        WHERE code = 'PREP'
+        WHERE code = ?
           AND active = 1
-        """
+        """,
+        ("PREP",),
     ).fetchone()
 
     if not prep:
         con.close()
+
         return {
             "success": False,
             "message": "PREP location is missing or inactive",
@@ -149,11 +143,11 @@ def pull_asset_to_prep(
     result = move_asset(
         asset_id=asset["id"],
         to_location_id=prep["id"],
-        action="Job Pull",
+        action="Job Return",
         job_id=job_id,
         user_id=user_id,
         notes=notes,
-        new_status="Reserved / Prep",
+        new_status="Returned / Inspection",
         set_job_assignment=True,
         assigned_job_id=job_id,
     )

@@ -9,6 +9,10 @@ from ..services.inventory_service import availability
 from ..services.pull_list_service import build_pull_list
 from ..services.job_pull_service import pull_asset_to_prep
 from ..services.job_load_service import load_asset_to_vehicle
+from ..services.job_dispatch_service import dispatch_asset_to_job_site
+from ..services.job_return_service import return_asset_to_prep
+from ..services.return_inspection_service import route_returned_asset
+from ..services.return_routing_service import find_next_job_for_item
 
 router = APIRouter()
 
@@ -959,6 +963,340 @@ def job_load_scan(
             f"/jobs/{job_id}/load"
             f"?vehicle_id={vehicle_id}"
             f"&message={quote(result['message'])}"
+        ),
+        status_code=303,
+    )
+
+@router.get("/jobs/{job_id}/dispatch", response_class=HTMLResponse)
+def job_dispatch_page(
+    request: Request,
+    job_id: int,
+    vehicle_id: int | None = None,
+    message: str = "",
+):
+    con = connect()
+
+    job = con.execute(
+        """
+        SELECT
+            j.*,
+            COALESCE(c.name, j.customer) AS customer_name
+        FROM jobs j
+        LEFT JOIN customers c
+            ON c.id = j.customer_id
+        WHERE j.id = ?
+        """,
+        (job_id,),
+    ).fetchone()
+
+    if not job:
+        con.close()
+
+        return RedirectResponse(
+            "/jobs?message=Job not found",
+            status_code=303,
+        )
+
+    vehicles = con.execute(
+        """
+        SELECT
+            v.id,
+            v.name,
+            v.vehicle_number,
+            v.warehouse_location_id,
+            wl.code AS location_code,
+            wl.name AS location_name
+        FROM job_vehicles jv
+        JOIN vehicles v
+            ON v.id = jv.vehicle_id
+        JOIN warehouse_locations wl
+            ON wl.id = v.warehouse_location_id
+        WHERE jv.job_id = ?
+          AND v.active = 1
+          AND wl.active = 1
+        ORDER BY v.name
+        """,
+        (job_id,),
+    ).fetchall()
+
+    if not vehicles:
+        con.close()
+
+        return RedirectResponse(
+            f"/jobs/{job_id}?message=Assign a vehicle before dispatch",
+            status_code=303,
+        )
+
+    selected_vehicle = None
+
+    if vehicle_id is not None:
+        for vehicle in vehicles:
+            if vehicle["id"] == vehicle_id:
+                selected_vehicle = vehicle
+                break
+
+    if selected_vehicle is None:
+        selected_vehicle = vehicles[0]
+
+    job_site = con.execute(
+        """
+        SELECT id
+        FROM warehouse_locations
+        WHERE code = ?
+          AND active = 1
+        """,
+        ("JOB-SITE",),
+    ).fetchone()
+
+    loaded_assets = con.execute(
+        """
+        SELECT
+            a.id,
+            a.asset_id,
+            a.description,
+            a.status
+        FROM assets a
+        WHERE a.assigned_job_id = ?
+          AND a.location_id = ?
+          AND a.status = 'Loaded'
+        ORDER BY a.description, a.asset_id
+        """,
+        (
+            job_id,
+            selected_vehicle["warehouse_location_id"],
+        ),
+    ).fetchall()
+
+    dispatched_assets = []
+
+    if job_site:
+        dispatched_assets = con.execute(
+            """
+            SELECT
+                a.id,
+                a.asset_id,
+                a.description,
+                a.status
+            FROM assets a
+            WHERE a.assigned_job_id = ?
+              AND a.location_id = ?
+              AND a.status = 'Checked Out'
+            ORDER BY a.description, a.asset_id
+            """,
+            (
+                job_id,
+                job_site["id"],
+            ),
+        ).fetchall()
+
+    total_dispatchable = len(loaded_assets) + len(dispatched_assets)
+    total_dispatched = len(dispatched_assets)
+
+    con.close()
+
+    return request.app.state.templates.TemplateResponse(
+        "job_dispatch.html",
+        {
+            "request": request,
+            "job": job,
+            "vehicles": vehicles,
+            "selected_vehicle": selected_vehicle,
+            "loaded_assets": loaded_assets,
+            "dispatched_assets": dispatched_assets,
+            "total_dispatchable": total_dispatchable,
+            "total_dispatched": total_dispatched,
+            "message": message,
+        },
+    )
+
+
+@router.post("/jobs/{job_id}/dispatch")
+def job_dispatch_scan(
+    job_id: int,
+    vehicle_id: int = Form(...),
+    barcode_value: str = Form(...),
+):
+    result = dispatch_asset_to_job_site(
+        job_id,
+        vehicle_id,
+        barcode_value,
+        notes="Job Dispatch scan",
+    )
+
+    return RedirectResponse(
+        (
+            f"/jobs/{job_id}/dispatch"
+            f"?vehicle_id={vehicle_id}"
+            f"&message={quote(result['message'])}"
+        ),
+        status_code=303,
+    )
+
+@router.get("/jobs/{job_id}/return", response_class=HTMLResponse)
+def job_return_page(
+    request: Request,
+    job_id: int,
+    message: str = "",
+):
+    con = connect()
+
+    job = con.execute(
+        """
+        SELECT
+            j.*,
+            COALESCE(c.name, j.customer) AS customer_name
+        FROM jobs j
+        LEFT JOIN customers c
+            ON c.id = j.customer_id
+        WHERE j.id = ?
+        """,
+        (job_id,),
+    ).fetchone()
+
+    if not job:
+        con.close()
+
+        return RedirectResponse(
+            "/jobs?message=Job not found",
+            status_code=303,
+        )
+
+    job_site = con.execute(
+        """
+        SELECT id
+        FROM warehouse_locations
+        WHERE code = ?
+          AND active = 1
+        """,
+        ("JOB-SITE",),
+    ).fetchone()
+
+    prep = con.execute(
+        """
+        SELECT id
+        FROM warehouse_locations
+        WHERE code = ?
+          AND active = 1
+        """,
+        ("PREP",),
+    ).fetchone()
+
+    site_assets = []
+
+    if job_site:
+        site_assets = con.execute(
+            """
+            SELECT
+                a.id,
+                a.asset_id,
+                a.item_master_id,
+                a.description,
+                a.status
+            FROM assets a
+            WHERE a.assigned_job_id = ?
+              AND a.location_id = ?
+              AND a.status = 'Checked Out'
+            ORDER BY a.description, a.asset_id
+            """,
+            (
+                job_id,
+                job_site["id"],
+            ),
+        ).fetchall()
+
+    returned_assets = []
+
+    if prep:
+        returned_assets = con.execute(
+            """
+            SELECT
+                a.id,
+                a.asset_id,
+                a.item_master_id,
+                a.description,
+                a.status
+            FROM assets a
+            WHERE a.assigned_job_id = ?
+              AND a.location_id = ?
+              AND a.status = 'Returned / Inspection'
+            ORDER BY a.description, a.asset_id
+            """,
+            (
+                job_id,
+                prep["id"],
+            ),
+        ).fetchall()
+
+    total_expected = len(site_assets) + len(returned_assets)
+    total_returned = len(returned_assets)
+
+    con.close()
+
+    returned_infos = []
+
+    for asset in returned_assets:
+        recommendation = find_next_job_for_item(
+            current_job_id=job_id,
+            item_master_id=asset["item_master_id"],
+        )
+
+        returned_infos.append(
+            {
+                "asset": asset,
+                "recommendation": recommendation,
+            }
+        )
+
+    return request.app.state.templates.TemplateResponse(
+        "job_return.html",
+        {
+            "request": request,
+            "job": job,
+            "site_assets": site_assets,
+            "returned_infos": returned_infos,
+            "total_expected": total_expected,
+            "total_returned": total_returned,
+            "message": message,
+        },
+    )
+
+@router.post("/jobs/{job_id}/return")
+def job_return_scan(
+    job_id: int,
+    barcode_value: str = Form(...),
+):
+    result = return_asset_to_prep(
+        job_id,
+        barcode_value,
+        notes="Job Return scan",
+    )
+
+    return RedirectResponse(
+        (
+            f"/jobs/{job_id}/return"
+            f"?message={quote(result['message'])}"
+        ),
+        status_code=303,
+    )
+
+@router.post("/jobs/{job_id}/return/inspect")
+def job_return_inspect(
+    job_id: int,
+    barcode_value: str = Form(...),
+    action: str = Form(...),
+    notes: str = Form(""),
+):
+    result = route_returned_asset(
+        job_id=job_id,
+        barcode_value=barcode_value,
+        action=action,
+        notes=notes,
+    )
+
+    return RedirectResponse(
+        (
+            f"/jobs/{job_id}/return"
+            f"?message={quote(result['message'])}"
         ),
         status_code=303,
     )

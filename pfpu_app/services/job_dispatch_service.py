@@ -3,7 +3,7 @@ from .asset_service import move_asset
 from .job_status_service import refresh_job_status
 
 
-def load_asset_to_vehicle(
+def dispatch_asset_to_job_site(
     job_id: int,
     vehicle_id: int,
     barcode_value: str,
@@ -12,8 +12,19 @@ def load_asset_to_vehicle(
     notes: str = "",
 ):
     """
-    Load one tracked asset from PREP onto a vehicle assigned
-    to the specified job.
+    Dispatch one loaded tracked asset from an assigned vehicle
+    to the JOB-SITE location for the specified job.
+
+    Rules:
+    - Job must exist and be active.
+    - Vehicle must be assigned to the job.
+    - Vehicle must have a valid warehouse vehicle location.
+    - Asset must exist.
+    - Asset must belong to this job.
+    - Asset must currently be on the selected vehicle.
+    - Asset must be in Loaded status.
+    - Successful dispatch moves the asset to JOB-SITE and
+      changes status to Checked Out.
     """
 
     barcode_value = barcode_value.strip()
@@ -132,64 +143,59 @@ def load_asset_to_vehicle(
             ),
         }
 
-    prep = con.execute(
+    if asset["location_id"] != vehicle["warehouse_location_id"]:
+        con.close()
+
+        return {
+            "success": False,
+            "message": (
+                f"{asset['asset_id']} is not currently on "
+                f"{vehicle['name']}"
+            ),
+        }
+
+    if asset["status"] != "Loaded":
+        con.close()
+
+        return {
+            "success": False,
+            "message": (
+                f"{asset['asset_id']} is not ready for dispatch"
+            ),
+        }
+
+    job_site = con.execute(
         """
-        SELECT id
+        SELECT *
         FROM warehouse_locations
-        WHERE code = 'PREP'
+        WHERE code = ?
           AND active = 1
-        """
+        """,
+        ("JOB-SITE",),
     ).fetchone()
 
-    if not prep:
+    if not job_site:
         con.close()
 
         return {
             "success": False,
-            "message": "PREP location is missing or inactive",
+            "message": "JOB-SITE location is missing or inactive",
         }
-
-    if asset["location_id"] != prep["id"]:
-        con.close()
-
-        return {
-            "success": False,
-            "message": (
-                f"{asset['asset_id']} is not currently in PREP"
-            ),
-        }
-
-    if asset["status"] != "Reserved / Prep":
-        con.close()
-
-        return {
-            "success": False,
-            "message": (
-                f"{asset['asset_id']} is not ready for vehicle loading"
-            ),
-        }
-
-    vehicle_location_id = vehicle["warehouse_location_id"]
 
     con.close()
 
     result = move_asset(
         asset_id=asset["id"],
-        to_location_id=vehicle_location_id,
-        action="Job Load",
+        to_location_id=job_site["id"],
+        action="Job Dispatch",
         job_id=job_id,
         user_id=user_id,
         notes=notes,
-        new_status="Loaded",
+        new_status="Checked Out",
         set_job_assignment=True,
         assigned_job_id=job_id,
     )
 
-    if result["success"]:
-        result["vehicle_id"] = vehicle_id
-        result["vehicle_name"] = vehicle["name"]
-        result["vehicle_location"] = vehicle["location_code"]
-    
     if result["success"]:
         status_result = refresh_job_status(job_id)
         result["job_status"] = status_result["status"]
