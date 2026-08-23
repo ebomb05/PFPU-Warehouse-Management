@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>Repair Management</h2>
+        <p>
+            Open, diagnose, track, and return equipment to service.
+        </p>
+    </div>
+</header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<section class="panel">
+
+    <h3>Open Repair Ticket</h3>
+
+    <form
+        method="post"
+        action="/repairs/open"
+    >
+
+        <label>Asset / QR</label>
+
+        <input
+            name="barcode_value"
+            placeholder="Scan QR / Asset ID"
+            autocomplete="off"
+            required
+            style="
+                width: 100%;
+                box-sizing: border-box;
+                margin-bottom: 10px;
+            "
+        >
+
+
+        <label>Issue</label>
+
+        <input
+            name="issue"
+            placeholder="Describe the problem"
+            required
+            style="
+                width: 100%;
+                box-sizing: border-box;
+                margin-bottom: 10px;
+            "
+        >
+
+
+        <label>Notes</label>
+
+        <input
+            name="notes"
+            placeholder="Additional notes"
+            style="
+                width: 100%;
+                box-sizing: border-box;
+                margin-bottom: 10px;
+            "
+        >
+
+
+        <label>Parts Needed</label>
+
+        <input
+            name="parts_needed"
+            placeholder="Parts needed, if known"
+            style="
+                width: 100%;
+                box-sizing: border-box;
+                margin-bottom: 10px;
+            "
+        >
+
+
+        <button
+            type="submit"
+            class="big"
+        >
+            Open Repair
+        </button>
+
+    </form>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Open Repairs</h3>
+
+    {% if open_repairs %}
+
+        {% for repair in open_repairs %}
+
+        <section class="panel">
+
+            <h4>
+                {{ repair["asset_code"] }}
+                — {{ repair["description"] }}
+            </h4>
+
+            <p>
+                <strong>Status:</strong>
+                {{ repair["status"] }}
+            </p>
+
+            <p>
+                <strong>Issue:</strong>
+                {{ repair["issue"] or "" }}
+            </p>
+
+            <p>
+                <strong>Parts Needed:</strong>
+                {{ repair["parts_needed"] or "None listed" }}
+            </p>
+
+            <p>
+                <strong>Notes:</strong>
+                {{ repair["notes"] or "" }}
+            </p>
+
+            <p>
+                <strong>Opened:</strong>
+                {{ repair["opened_at"] }}
+            </p>
+
+
+            <form
+                method="post"
+                action="/repairs/{{ repair['id'] }}/update"
+            >
+
+                <label>Repair Status</label>
+
+                <select
+                    name="new_status"
+                    required
+                >
+
+                    {% for status in [
+                        "Repair",
+                        "Waiting for Parts",
+                        "Out of Commission",
+                        "Needs Replacement",
+                        "Dead"
+                    ] %}
+
+                    <option
+                        value="{{ status }}"
+                        {% if repair["status"] == status %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ status }}
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+
+                <input
+                    name="notes"
+                    placeholder="Updated repair notes"
+                >
+
+
+                <input
+                    name="parts_needed"
+                    placeholder="Update parts needed"
+                >
+
+
+                <button type="submit">
+                    Update Repair
+                </button>
+
+            </form>
+
+
+            <form
+                method="post"
+                action="/repairs/{{ repair['id'] }}/close"
+                style="margin-top: 14px;"
+            >
+
+                <input
+                    name="resolution_notes"
+                    placeholder="Repair completed / resolution notes"
+                    required
+                >
+
+                <button type="submit">
+                    Return to Service
+                </button>
+
+            </form>
+
+        </section>
+
+        {% endfor %}
+
+    {% else %}
+
+    <p>
+        No open repair tickets.
+    </p>
+
+    {% endif %}
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Recent Completed Repairs</h3>
+
+    {% if recent_closed %}
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Asset</th>
+                <th>Description</th>
+                <th>Issue</th>
+                <th>Status</th>
+                <th>Closed</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for repair in recent_closed %}
+
+        <tr>
+
+            <td>
+                <strong>
+                    {{ repair["asset_code"] }}
+                </strong>
+            </td>
+
+            <td>
+                {{ repair["description"] }}
+            </td>
+
+            <td>
+                {{ repair["issue"] or "" }}
+            </td>
+
+            <td>
+                {{ repair["status"] }}
+            </td>
+
+            <td>
+                {{ repair["closed_at"] }}
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% else %}
+
+    <p>
+        No completed repair history yet.
+    </p>
+
+    {% endif %}
+
+</section>
+
+{% endblock %}

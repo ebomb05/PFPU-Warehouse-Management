@@ -16,6 +16,7 @@ from .routes import (
     job_packs,
     jobs,
     locations,
+    repairs,
     scan,
     vehicles,
 )
@@ -45,6 +46,7 @@ def create_app() -> FastAPI:
     app.include_router(locations.router)
     app.include_router(job_packs.router)
     app.include_router(jobs.router)
+    app.include_router(repairs.router)
     app.include_router(scan.router)
     app.include_router(barcodes.router)
     app.include_router(export.router)
