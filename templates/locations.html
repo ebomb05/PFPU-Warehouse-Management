@@ -5,9 +5,12 @@
 <div class="page-header">
     <div>
         <h1>Warehouse Locations</h1>
-        <p>Create and manage warehouse shelves and operational locations.</p>
+        <p>
+            View warehouse shelves and operational locations.
+        </p>
     </div>
 </div>
+
 
 {% if message %}
 <div class="card">
@@ -15,15 +18,23 @@
 </div>
 {% endif %}
 
+
+{% if request.state.can("locations.manage") %}
+
 <div class="card">
+
     <h2>Add Location</h2>
 
-    <form method="post" action="/locations/create">
+    <form
+        method="post"
+        action="/locations/create"
+    >
 
         <div class="form-grid">
 
             <div>
                 <label>Location Code</label>
+
                 <input
                     type="text"
                     name="code"
@@ -32,8 +43,10 @@
                 >
             </div>
 
+
             <div>
                 <label>Name</label>
+
                 <input
                     type="text"
                     name="name"
@@ -41,22 +54,47 @@
                 >
             </div>
 
+
             <div>
                 <label>Location Type</label>
 
                 <select name="location_type">
-                    <option value="Shelf">Warehouse Shelf</option>
-                    <option value="Prep">Prep Area</option>
-                    <option value="Repair">Repair</option>
-                    <option value="Lost/Found">Lost / Found</option>
-                    <option value="Vehicle">Vehicle</option>
-                    <option value="Job Site">Job Site</option>
-                    <option value="Other">Other</option>
+
+                    <option value="Shelf">
+                        Warehouse Shelf
+                    </option>
+
+                    <option value="Prep">
+                        Prep Area
+                    </option>
+
+                    <option value="Repair">
+                        Repair
+                    </option>
+
+                    <option value="Lost/Found">
+                        Lost / Found
+                    </option>
+
+                    <option value="Vehicle">
+                        Vehicle
+                    </option>
+
+                    <option value="Job Site">
+                        Job Site
+                    </option>
+
+                    <option value="Other">
+                        Other
+                    </option>
+
                 </select>
             </div>
 
+
             <div>
                 <label>Notes</label>
+
                 <input
                     type="text"
                     name="notes"
@@ -73,7 +111,10 @@
         </button>
 
     </form>
+
 </div>
+
+{% endif %}
 
 
 <div class="card">
@@ -83,6 +124,7 @@
     <table>
 
         <thead>
+
             <tr>
                 <th>Code</th>
                 <th>Name</th>
@@ -92,6 +134,7 @@
                 <th>Height</th>
                 <th>Status</th>
             </tr>
+
         </thead>
 
         <tbody>
@@ -102,36 +145,58 @@
 
                 <td>
                     <a href="/locations/{{ location['id'] }}">
-                        <strong>{{ location["code"] }}</strong>
-                </a>
-            </td>
+                        <strong>
+                            {{ location["code"] }}
+                        </strong>
+                    </a>
+                </td>
+
 
                 <td>
                     {{ location["name"] or "" }}
                 </td>
 
+
                 <td>
                     {{ location["location_type"] }}
                 </td>
 
-                <td>
-                    {{ location["row_number"] if location["row_number"] is not none else "-" }}
-                </td>
 
                 <td>
-                    {{ location["section_number"] if location["section_number"] is not none else "-" }}
+                    {{
+                        location["row_number"]
+                        if location["row_number"] is not none
+                        else "-"
+                    }}
                 </td>
 
-                <td>
-                    {{ location["height_number"] if location["height_number"] is not none else "-" }}
-                </td>
 
                 <td>
+                    {{
+                        location["section_number"]
+                        if location["section_number"] is not none
+                        else "-"
+                    }}
+                </td>
+
+
+                <td>
+                    {{
+                        location["height_number"]
+                        if location["height_number"] is not none
+                        else "-"
+                    }}
+                </td>
+
+
+                <td>
+
                     {% if location["active"] %}
                         Active
                     {% else %}
                         Retired
                     {% endif %}
+
                 </td>
 
             </tr>

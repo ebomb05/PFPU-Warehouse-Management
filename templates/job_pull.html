@@ -80,6 +80,8 @@
 </section>
 
 
+{% if request.state.can("scan.checkout") %}
+
 <section class="panel">
 
     <h3>Scan Equipment</h3>
@@ -122,6 +124,8 @@
     </form>
 
 </section>
+
+{% endif %}
 
 
 <section class="panel">
@@ -261,6 +265,8 @@
 </section>
 
 
+{% if request.state.can("scan.checkout") %}
+
 <script>
     const barcodeInput = document.getElementById("barcode-input");
 
@@ -270,5 +276,7 @@
         });
     }
 </script>
+
+{% endif %}
 
 {% endblock %}

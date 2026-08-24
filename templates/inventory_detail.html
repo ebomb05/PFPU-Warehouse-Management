@@ -69,6 +69,8 @@
 </section>
 
 
+{% if request.state.can("inventory.edit") %}
+
 <section class="panel">
 
     <h3>Assign Storage Location</h3>
@@ -145,6 +147,8 @@
 
 </section>
 
+{% endif %}
+
 
 <section class="panel">
 
@@ -161,7 +165,10 @@
                 <th>Quantity</th>
                 <th>Pull Priority</th>
                 <th>Notes</th>
+
+                {% if request.state.can("inventory.edit") %}
                 <th>Action</th>
+                {% endif %}
             </tr>
         </thead>
 
@@ -197,6 +204,8 @@
                     {{ storage["notes"] or "" }}
                 </td>
 
+                {% if request.state.can("inventory.edit") %}
+
                 <td>
 
                     <form
@@ -211,6 +220,8 @@
                     </form>
 
                 </td>
+
+                {% endif %}
 
             </tr>
 

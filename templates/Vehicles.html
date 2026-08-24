@@ -5,7 +5,7 @@
 <header>
     <div>
         <h2>Vehicles</h2>
-        <p>Manage delivery trucks and company vehicles.</p>
+        <p>View delivery trucks and company vehicles.</p>
     </div>
 
     <form>
@@ -21,11 +21,15 @@
     </form>
 </header>
 
+
 {% if message %}
 <section class="panel">
     <strong>{{ message }}</strong>
 </section>
 {% endif %}
+
+
+{% if request.state.can("vehicles.manage") %}
 
 <section class="panel">
 
@@ -102,6 +106,9 @@
     </form>
 
 </section>
+
+{% endif %}
+
 
 <section class="panel">
 

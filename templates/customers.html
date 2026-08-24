@@ -6,7 +6,7 @@
     <div>
         <h2>Customers</h2>
         <p>
-            Manage returning customers and their contact information.
+            View returning customers and their contact information.
         </p>
     </div>
 
@@ -30,6 +30,8 @@
 </section>
 {% endif %}
 
+
+{% if request.state.can("customers.create") %}
 
 <section class="panel">
 
@@ -79,6 +81,8 @@
     </form>
 
 </section>
+
+{% endif %}
 
 
 <section class="panel">

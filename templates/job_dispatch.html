@@ -114,6 +114,8 @@
 </section>
 
 
+{% if request.state.can("scan.checkout") %}
+
 <section class="panel">
 
     <h3>Scan Equipment to Job Site</h3>
@@ -163,6 +165,8 @@
 
 </section>
 
+{% endif %}
+
 
 <section class="panel">
 
@@ -185,6 +189,7 @@
         {% for asset in loaded_assets %}
 
             <tr>
+
                 <td>
                     <strong>{{ asset["asset_id"] }}</strong>
                 </td>
@@ -196,6 +201,7 @@
                 <td>
                     {{ asset["status"] }}
                 </td>
+
             </tr>
 
         {% endfor %}
@@ -236,6 +242,7 @@
         {% for asset in dispatched_assets %}
 
             <tr>
+
                 <td>
                     <strong>{{ asset["asset_id"] }}</strong>
                 </td>
@@ -247,6 +254,7 @@
                 <td>
                     {{ asset["status"] }}
                 </td>
+
             </tr>
 
         {% endfor %}
@@ -266,6 +274,8 @@
 </section>
 
 
+{% if request.state.can("scan.checkout") %}
+
 <script>
 
     const barcodeInput =
@@ -283,5 +293,7 @@
     }
 
 </script>
+
+{% endif %}
 
 {% endblock %}

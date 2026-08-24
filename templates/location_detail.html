@@ -13,6 +13,7 @@
     </div>
 </div>
 
+
 {% if message %}
 <div class="card">
     <strong>{{ message }}</strong>
@@ -53,6 +54,8 @@
 </div>
 
 
+{% if request.state.can("locations.manage") %}
+
 <div class="card">
 
     <h2>Edit Location</h2>
@@ -74,6 +77,7 @@
                 >
             </div>
 
+
             <div>
                 <label>Name</label>
 
@@ -83,6 +87,7 @@
                     value="{{ location['name'] or '' }}"
                 >
             </div>
+
 
             <div>
                 <label>Location Type</label>
@@ -113,6 +118,7 @@
                 </select>
             </div>
 
+
             <div>
                 <label>Notes</label>
 
@@ -134,6 +140,8 @@
     </form>
 
 </div>
+
+{% endif %}
 
 
 <div class="card">
@@ -177,6 +185,8 @@
 </div>
 
 
+{% if request.state.can("locations.manage") %}
+
 <div class="card">
 
     <h2>Location Status</h2>
@@ -216,5 +226,7 @@
     {% endif %}
 
 </div>
+
+{% endif %}
 
 {% endblock %}

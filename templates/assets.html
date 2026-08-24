@@ -31,6 +31,8 @@
 {% endif %}
 
 
+{% if request.state.can("assets.create") %}
+
 <section class="panel">
 
     <h3>Generate New Tracked Assets</h3>
@@ -92,6 +94,8 @@
 
 </section>
 
+{% endif %}
+
 
 <section class="panel">
 
@@ -106,7 +110,10 @@
                 <th>Status</th>
                 <th>Location</th>
                 <th>Job</th>
+
+                {% if request.state.can("assets.move") %}
                 <th>Move Asset</th>
+                {% endif %}
             </tr>
         </thead>
 
@@ -154,6 +161,9 @@
                     {{ asset["assigned_job_id"] or "" }}
                 </td>
 
+
+                {% if request.state.can("assets.move") %}
+
                 <td>
 
                     <form
@@ -193,6 +203,8 @@
                     </form>
 
                 </td>
+
+                {% endif %}
 
             </tr>
 

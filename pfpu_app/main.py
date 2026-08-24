@@ -79,6 +79,11 @@ def create_app() -> FastAPI:
         request.state.user_id = None
         request.state.permissions = set()
 
+        request.state.can = (
+            lambda permission_code:
+            permission_code in request.state.permissions
+)
+
         # Validate an existing login session.
         if user_id:
             con = connect()

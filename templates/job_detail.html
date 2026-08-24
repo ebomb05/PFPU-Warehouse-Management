@@ -46,19 +46,13 @@
 
 </header>
 
+
 {% if message %}
 <section class="panel">
     <strong>{{ message }}</strong>
 </section>
 {% endif %}
 
-
-<!-- PASTE THE NEW ASSIGNED VEHICLES SECTION HERE -->
-
-
-<section class="panel">
-
-    <h3>Apply Job Pack</h3>
 
 <section class="panel">
 
@@ -74,7 +68,10 @@
                 <th>Unit</th>
                 <th>Plate</th>
                 <th>Warehouse Location</th>
+
+                {% if request.state.can("jobs.edit") %}
                 <th>Action</th>
+                {% endif %}
             </tr>
         </thead>
 
@@ -106,6 +103,9 @@
                     {% endif %}
                 </td>
 
+
+                {% if request.state.can("jobs.edit") %}
+
                 <td>
 
                     <form
@@ -120,6 +120,8 @@
                     </form>
 
                 </td>
+
+                {% endif %}
 
             </tr>
 
@@ -138,55 +140,55 @@
     {% endif %}
 
 
-    {% if available_vehicles %}
+    {% if request.state.can("jobs.edit") %}
 
-    <h4>Assign Vehicle</h4>
+        {% if available_vehicles %}
 
-    <form
-        method="post"
-        action="/jobs/{{ job['id'] }}/vehicles/assign"
-        class="rowform"
-    >
+        <h4>Assign Vehicle</h4>
 
-        <select
-            name="vehicle_id"
-            required
+        <form
+            method="post"
+            action="/jobs/{{ job['id'] }}/vehicles/assign"
+            class="rowform"
         >
 
-        {% for vehicle in available_vehicles %}
+            <select
+                name="vehicle_id"
+                required
+            >
 
-            <option value="{{ vehicle['id'] }}">
+            {% for vehicle in available_vehicles %}
 
-                {{ vehicle["name"] }}
+                <option value="{{ vehicle['id'] }}">
 
-                {% if vehicle["vehicle_number"] %}
-                    — Unit {{ vehicle["vehicle_number"] }}
-                {% endif %}
+                    {{ vehicle["name"] }}
 
-                — {{ vehicle["location_code"] }}
+                    {% if vehicle["vehicle_number"] %}
+                        — Unit {{ vehicle["vehicle_number"] }}
+                    {% endif %}
 
-            </option>
+                    — {{ vehicle["location_code"] }}
 
-        {% endfor %}
+                </option>
 
-        </select>
+            {% endfor %}
 
-        <button type="submit">
-            Assign Vehicle
-        </button>
+            </select>
 
-    </form>
+            <button type="submit">
+                Assign Vehicle
+            </button>
+
+        </form>
+
+        {% endif %}
 
     {% endif %}
 
 </section>
 
 
-{% if message %}
-<section class="panel">
-    <strong>{{ message }}</strong>
-</section>
-{% endif %}
+{% if request.state.can("jobs.edit") %}
 
 <section class="panel">
 
@@ -239,7 +241,7 @@
     </p>
 
     <a href="/job-packs">
-        Create a Job Pack
+        View Job Packs
     </a>
 
     {% endif %}
@@ -300,6 +302,8 @@
     </form>
 
 </section>
+
+{% endif %}
 
 
 <section class="panel">
@@ -368,6 +372,7 @@
     </table>
 
 </section>
+
 
 <section class="panel">
 
