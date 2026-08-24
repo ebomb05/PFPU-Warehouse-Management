@@ -4,6 +4,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..database import connect
+from ..services.auth_service import request_has_permission
 from ..services.audit_service import (
     complete_audit,
     get_audit_summary,
@@ -14,11 +15,24 @@ from ..services.audit_service import (
 router = APIRouter()
 
 
+def deny_access():
+    return RedirectResponse(
+        "/?message=Access denied",
+        status_code=303,
+    )
+
+
 @router.get("/audits", response_class=HTMLResponse)
 def audits_page(
     request: Request,
     message: str = "",
 ):
+    if not request_has_permission(
+        request,
+        "audits.perform",
+    ):
+        return deny_access()
+
     con = connect()
 
     locations = con.execute(
@@ -67,9 +81,16 @@ def audits_page(
 
 @router.post("/audits/start")
 def audit_start(
+    request: Request,
     location_id: int = Form(...),
     notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "audits.perform",
+    ):
+        return deny_access()
+
     result = start_location_audit(
         location_id,
         notes=notes,
@@ -93,6 +114,12 @@ def audit_detail(
     audit_session_id: int,
     message: str = "",
 ):
+    if not request_has_permission(
+        request,
+        "audits.perform",
+    ):
+        return deny_access()
+
     summary = get_audit_summary(audit_session_id)
 
     if not summary["success"]:
@@ -113,10 +140,17 @@ def audit_detail(
 
 @router.post("/audits/{audit_session_id}/scan")
 def audit_scan(
+    request: Request,
     audit_session_id: int,
     barcode_value: str = Form(...),
     notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "audits.perform",
+    ):
+        return deny_access()
+
     result = scan_audit_asset(
         audit_session_id,
         barcode_value,
@@ -134,8 +168,15 @@ def audit_scan(
 
 @router.post("/audits/{audit_session_id}/complete")
 def audit_complete(
+    request: Request,
     audit_session_id: int,
 ):
+    if not request_has_permission(
+        request,
+        "audits.perform",
+    ):
+        return deny_access()
+
     result = complete_audit(audit_session_id)
 
     return RedirectResponse(

@@ -3,14 +3,32 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..database import connect
 from ..services.asset_service import move_asset
+from ..services.auth_service import request_has_permission
 from ..services.barcode_service import make_barcode_svg
 from ..services.inventory_service import next_asset_id
 
 router = APIRouter()
 
 
+def deny_access():
+    return RedirectResponse(
+        "/?message=Access denied",
+        status_code=303,
+    )
+
+
 @router.get("/assets", response_class=HTMLResponse)
-def assets(request: Request, q: str = "", message: str = ""):
+def assets(
+    request: Request,
+    q: str = "",
+    message: str = "",
+):
+    if not request_has_permission(
+        request,
+        "inventory.view",
+    ):
+        return deny_access()
+
     con = connect()
 
     if q:
@@ -99,10 +117,17 @@ def assets(request: Request, q: str = "", message: str = ""):
 
 @router.post("/assets/generate")
 def generate_assets(
+    request: Request,
     item_master_id: int = Form(...),
     qty: int = Form(...),
     location_id: int = Form(...),
 ):
+    if not request_has_permission(
+        request,
+        "assets.create",
+    ):
+        return deny_access()
+
     con = connect()
 
     item = con.execute(
@@ -116,6 +141,7 @@ def generate_assets(
 
     if not item:
         con.close()
+
         return RedirectResponse(
             "/assets",
             status_code=303,
@@ -133,6 +159,7 @@ def generate_assets(
 
     if not location:
         con.close()
+
         return RedirectResponse(
             "/assets",
             status_code=303,
@@ -228,10 +255,17 @@ def generate_assets(
 
 @router.post("/assets/{asset_db_id}/move")
 def move_asset_route(
+    request: Request,
     asset_db_id: int,
     location_id: int = Form(...),
     notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "assets.move",
+    ):
+        return deny_access()
+
     result = move_asset(
         asset_id=asset_db_id,
         to_location_id=location_id,

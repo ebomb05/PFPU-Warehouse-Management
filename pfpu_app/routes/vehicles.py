@@ -2,12 +2,30 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..database import connect
+from ..services.auth_service import request_has_permission
 
 router = APIRouter()
 
 
+def deny_access():
+    return RedirectResponse(
+        "/?message=Access denied",
+        status_code=303,
+    )
+
+
 @router.get("/vehicles", response_class=HTMLResponse)
-def vehicles_page(request: Request, q: str = "", message: str = ""):
+def vehicles_page(
+    request: Request,
+    q: str = "",
+    message: str = "",
+):
+    if not request_has_permission(
+        request,
+        "vehicles.view",
+    ):
+        return deny_access()
+
     con = connect()
 
     if q:
@@ -28,6 +46,7 @@ def vehicles_page(request: Request, q: str = "", message: str = ""):
                 f"%{q}%",
             ),
         ).fetchall()
+
     else:
         vehicles = con.execute(
             """
@@ -52,6 +71,7 @@ def vehicles_page(request: Request, q: str = "", message: str = ""):
 
 @router.post("/vehicles/create")
 def create_vehicle(
+    request: Request,
     name: str = Form(...),
     vehicle_number: str = Form(""),
     license_plate: str = Form(""),
@@ -63,6 +83,12 @@ def create_vehicle(
     next_maintenance_date: str = Form(""),
     notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "vehicles.manage",
+    ):
+        return deny_access()
+
     name = name.strip()
 
     if not name:
@@ -119,6 +145,12 @@ def vehicle_detail(
     vehicle_id: int,
     message: str = "",
 ):
+    if not request_has_permission(
+        request,
+        "vehicles.view",
+    ):
+        return deny_access()
+
     con = connect()
 
     vehicle = con.execute(
@@ -166,6 +198,7 @@ def vehicle_detail(
 
 @router.post("/vehicles/{vehicle_id}/update")
 def update_vehicle(
+    request: Request,
     vehicle_id: int,
     name: str = Form(...),
     vehicle_number: str = Form(""),
@@ -179,6 +212,12 @@ def update_vehicle(
     warehouse_location_id: int | None = Form(None),
     notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "vehicles.manage",
+    ):
+        return deny_access()
+
     con = connect()
 
     vehicle = con.execute(
@@ -214,7 +253,10 @@ def update_vehicle(
             con.close()
 
             return RedirectResponse(
-                f"/vehicles/{vehicle_id}?message=Invalid vehicle warehouse location",
+                (
+                    f"/vehicles/{vehicle_id}"
+                    "?message=Invalid vehicle warehouse location"
+                ),
                 status_code=303,
             )
 
@@ -235,7 +277,11 @@ def update_vehicle(
             con.close()
 
             return RedirectResponse(
-                f"/vehicles/{vehicle_id}?message=That warehouse vehicle location is already linked to another vehicle",
+                (
+                    f"/vehicles/{vehicle_id}"
+                    "?message=That warehouse vehicle location "
+                    "is already linked to another vehicle"
+                ),
                 status_code=303,
             )
 
@@ -276,13 +322,25 @@ def update_vehicle(
     con.close()
 
     return RedirectResponse(
-        f"/vehicles/{vehicle_id}?message=Vehicle updated successfully",
+        (
+            f"/vehicles/{vehicle_id}"
+            "?message=Vehicle updated successfully"
+        ),
         status_code=303,
     )
 
 
 @router.post("/vehicles/{vehicle_id}/toggle-active")
-def toggle_vehicle_active(vehicle_id: int):
+def toggle_vehicle_active(
+    request: Request,
+    vehicle_id: int,
+):
+    if not request_has_permission(
+        request,
+        "vehicles.manage",
+    ):
+        return deny_access()
+
     con = connect()
 
     vehicle = con.execute(

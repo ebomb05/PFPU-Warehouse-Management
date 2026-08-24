@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>User Management</h2>
+        <p>
+            Create and manage PFPU user accounts.
+        </p>
+    </div>
+</header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<section class="panel">
+
+    <h3>Create User</h3>
+
+    <form
+        method="post"
+        action="/users/create"
+    >
+
+        <label>Username</label>
+
+        <input
+            name="username"
+            placeholder="Example: jsmith"
+            required
+        >
+
+        <label>Display Name</label>
+
+        <input
+            name="display_name"
+            placeholder="Example: John Smith"
+            required
+        >
+
+        <label>Email</label>
+
+        <input
+            name="email"
+            type="email"
+            placeholder="Optional email address"
+        >
+
+        <button
+            type="submit"
+            class="big"
+        >
+            Create User
+        </button>
+
+    </form>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Users</h3>
+
+    {% if users %}
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Positions</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for user in users %}
+
+        <tr>
+
+            <td>
+                <strong>
+                    {{ user["display_name"] }}
+                </strong>
+            </td>
+
+            <td>
+                {{ user["username"] }}
+            </td>
+
+            <td>
+                {{ user["email"] or "" }}
+            </td>
+
+            <td>
+                {{ user["positions"] or "No positions assigned" }}
+            </td>
+
+            <td>
+                {% if user["active"] %}
+                    Active
+                {% else %}
+                    Inactive
+                {% endif %}
+            </td>
+
+            <td>
+                <a href="/users/{{ user['id'] }}">
+                    Manage User
+                </a>
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% else %}
+
+    <p>No users have been created yet.</p>
+
+    {% endif %}
+
+</section>
+
+{% endblock %}

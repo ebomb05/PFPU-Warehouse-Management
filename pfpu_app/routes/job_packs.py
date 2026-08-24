@@ -2,8 +2,16 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..database import connect
+from ..services.auth_service import request_has_permission
 
 router = APIRouter()
+
+
+def deny_access():
+    return RedirectResponse(
+        "/?message=Access denied",
+        status_code=303,
+    )
 
 
 @router.get("/job-packs", response_class=HTMLResponse)
@@ -11,6 +19,12 @@ def job_packs_page(
     request: Request,
     message: str = "",
 ):
+    if not request_has_permission(
+        request,
+        "jobs.view",
+    ):
+        return deny_access()
+
     con = connect()
 
     packs = con.execute(
@@ -41,9 +55,16 @@ def job_packs_page(
 
 @router.post("/job-packs/create")
 def create_job_pack(
+    request: Request,
     name: str = Form(...),
     description: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "jobs.edit",
+    ):
+        return deny_access()
+
     name = name.strip()
 
     if not name:
@@ -101,6 +122,12 @@ def job_pack_detail(
     pack_id: int,
     message: str = "",
 ):
+    if not request_has_permission(
+        request,
+        "jobs.view",
+    ):
+        return deny_access()
+
     con = connect()
 
     pack = con.execute(
@@ -165,10 +192,17 @@ def job_pack_detail(
 
 @router.post("/job-packs/{pack_id}/update")
 def update_job_pack(
+    request: Request,
     pack_id: int,
     name: str = Form(...),
     description: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "jobs.edit",
+    ):
+        return deny_access()
+
     con = connect()
 
     pack = con.execute(
@@ -205,7 +239,10 @@ def update_job_pack(
         con.close()
 
         return RedirectResponse(
-            f"/job-packs/{pack_id}?message=Another Job Pack already uses that name",
+            (
+                f"/job-packs/{pack_id}"
+                "?message=Another Job Pack already uses that name"
+            ),
             status_code=303,
         )
 
@@ -235,11 +272,18 @@ def update_job_pack(
 
 @router.post("/job-packs/{pack_id}/add-item")
 def add_job_pack_item(
+    request: Request,
     pack_id: int,
     item_master_id: int = Form(...),
     qty_needed: int = Form(...),
     notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "jobs.edit",
+    ):
+        return deny_access()
+
     con = connect()
 
     existing = con.execute(
@@ -313,11 +357,18 @@ def add_job_pack_item(
 
 @router.post("/job-packs/{pack_id}/items/{item_id}/update")
 def update_job_pack_item(
+    request: Request,
     pack_id: int,
     item_id: int,
     qty_needed: int = Form(...),
     notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "jobs.edit",
+    ):
+        return deny_access()
+
     con = connect()
 
     con.execute(
@@ -356,9 +407,16 @@ def update_job_pack_item(
 
 @router.post("/job-packs/{pack_id}/items/{item_id}/remove")
 def remove_job_pack_item(
+    request: Request,
     pack_id: int,
     item_id: int,
 ):
+    if not request_has_permission(
+        request,
+        "jobs.edit",
+    ):
+        return deny_access()
+
     con = connect()
 
     con.execute(
@@ -392,7 +450,16 @@ def remove_job_pack_item(
 
 
 @router.post("/job-packs/{pack_id}/toggle-active")
-def toggle_job_pack_active(pack_id: int):
+def toggle_job_pack_active(
+    request: Request,
+    pack_id: int,
+):
+    if not request_has_permission(
+        request,
+        "jobs.edit",
+    ):
+        return deny_access()
+
     con = connect()
 
     pack = con.execute(

@@ -15,26 +15,145 @@
 
     <h1>PFPU</h1>
 
-    <nav>
-        <a href="/">Dashboard</a>
-        <a href="/inventory">Inventory</a>
-        <a href="/customers">Customers</a>
-        <a href="/vehicles">Vehicles</a>
-        <a href="/assets">Assets</a>
-        <a href="/locations">Locations</a>
-        <a href="/job-packs">Job Packs</a>
-        <a href="/jobs">Jobs</a>
-        <a href="/scan">Scan Station</a>
-        <a href="/repairs">Repairs</a>
-        <a href="/barcodes">Barcodes</a>
-        <a href="/export">Export Excel</a>
-    </nav>
+    {% if request.session.get("user_id") %}
+
+        {% set perms = request.state.permissions %}
+
+        <nav>
+
+            {% if "dashboard.view" in perms %}
+            <a href="/">Dashboard</a>
+            {% endif %}
+
+
+            {% if "inventory.view" in perms %}
+            <a href="/inventory">Inventory</a>
+            {% endif %}
+
+
+            {% if "customers.view" in perms %}
+            <a href="/customers">Customers</a>
+            {% endif %}
+
+
+            {% if "vehicles.view" in perms %}
+            <a href="/vehicles">Vehicles</a>
+            {% endif %}
+
+
+            {% if
+                "inventory.view" in perms
+                or "assets.create" in perms
+                or "assets.move" in perms
+            %}
+            <a href="/assets">Assets</a>
+            {% endif %}
+
+
+            {% if "locations.view" in perms %}
+            <a href="/locations">Locations</a>
+            {% endif %}
+
+
+            {% if "jobs.view" in perms %}
+            <a href="/job-packs">Job Packs</a>
+            <a href="/jobs">Jobs</a>
+            {% endif %}
+
+
+            {% if
+                "assets.move" in perms
+                or "scan.checkout" in perms
+                or "scan.checkin" in perms
+            %}
+            <a href="/scan">Scan Station</a>
+            {% endif %}
+
+
+            {% if "repairs.view" in perms %}
+            <a href="/repairs">Repairs</a>
+            {% endif %}
+
+
+            {% if "audits.perform" in perms %}
+            <a href="/audits">Audits</a>
+            {% endif %}
+
+
+            {% if
+                "assets.create" in perms
+                or "inventory.edit" in perms
+            %}
+            <a href="/barcodes">Barcodes</a>
+            {% endif %}
+
+
+            {% if "users.manage" in perms %}
+            <a href="/users">Users</a>
+            {% endif %}
+
+
+            {% if "positions.manage" in perms %}
+            <a href="/positions">Positions</a>
+            {% endif %}
+
+
+            {% if "system.export" in perms %}
+            <a href="/export">Export Excel</a>
+            {% endif %}
+
+        </nav>
+
+    {% endif %}
 
 </aside>
 
+
 <main>
+
+    <div
+        style="
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        "
+    >
+
+        {% if request.session.get("user_id") %}
+
+            <span>
+                Signed in as
+                <strong>
+                    {{ request.session.get("display_name") }}
+                </strong>
+            </span>
+
+            <form
+                method="post"
+                action="/logout"
+                style="margin: 0;"
+            >
+                <button type="submit">
+                    Logout
+                </button>
+            </form>
+
+        {% else %}
+
+            <a href="/login">
+                Login
+            </a>
+
+        {% endif %}
+
+    </div>
+
+
     {% block content %}
     {% endblock %}
+
 </main>
 
 </body>

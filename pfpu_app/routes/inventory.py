@@ -2,12 +2,26 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..database import connect
+from ..services.auth_service import request_has_permission
 
 router = APIRouter()
 
 
 @router.get("/inventory", response_class=HTMLResponse)
-def inventory(request: Request, q: str = "", message: str = ""):
+def inventory(
+    request: Request,
+    q: str = "",
+    message: str = "",
+):
+    if not request_has_permission(
+        request,
+        "inventory.view",
+    ):
+        return RedirectResponse(
+            "/?message=Access denied",
+            status_code=303,
+        )
+
     con = connect()
 
     base_query = """
@@ -75,6 +89,15 @@ def inventory_detail(
     item_id: int,
     message: str = "",
 ):
+    if not request_has_permission(
+        request,
+        "inventory.view",
+    ):
+        return RedirectResponse(
+            "/?message=Access denied",
+            status_code=303,
+        )
+
     con = connect()
 
     item = con.execute(
@@ -167,12 +190,22 @@ def inventory_detail(
 
 @router.post("/inventory/{item_id}/storage/add")
 def add_storage_location(
+    request: Request,
     item_id: int,
     location_id: int = Form(...),
     qty_assigned: int = Form(...),
     priority: int = Form(100),
     notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "inventory.edit",
+    ):
+        return RedirectResponse(
+            "/?message=Access denied",
+            status_code=303,
+        )
+
     con = connect()
 
     item = con.execute(
@@ -311,9 +344,19 @@ def add_storage_location(
 
 @router.post("/inventory/{item_id}/storage/{storage_id}/remove")
 def remove_storage_location(
+    request: Request,
     item_id: int,
     storage_id: int,
 ):
+    if not request_has_permission(
+        request,
+        "inventory.edit",
+    ):
+        return RedirectResponse(
+            "/?message=Access denied",
+            status_code=303,
+        )
+
     con = connect()
 
     con.execute(

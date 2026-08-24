@@ -726,6 +726,218 @@ def run_migrations(con):
 
     con.commit()
 
+    # ---------------------------------------------------------
+    # Migration 9
+    # Assign default permissions to built-in positions.
+    #
+    # These defaults are applied ONCE.
+    # Future permission changes made through the UI are not
+    # overwritten on application startup.
+    # ---------------------------------------------------------
+    if current_version < 9:
+
+        role_permissions = {
+            "System Administrator": "__ALL__",
+
+            "General Manager": [
+                "dashboard.view",
+
+                "jobs.view",
+                "jobs.create",
+                "jobs.edit",
+                "jobs.finalize",
+
+                "customers.view",
+                "customers.create",
+                "customers.edit",
+
+                "inventory.view",
+                "inventory.edit",
+
+                "assets.create",
+                "assets.move",
+
+                "scan.checkout",
+                "scan.checkin",
+
+                "locations.view",
+                "locations.manage",
+
+                "repairs.view",
+                "repairs.update",
+
+                "vehicles.view",
+                "vehicles.manage",
+
+                "audits.perform",
+
+                "exceptions.view",
+                "exceptions.resolve",
+
+                "users.manage",
+                "positions.manage",
+
+                "system.export",
+            ],
+
+            "Warehouse Manager": [
+                "dashboard.view",
+
+                "jobs.view",
+                "jobs.create",
+                "jobs.edit",
+                "jobs.finalize",
+
+                "customers.view",
+
+                "inventory.view",
+                "inventory.edit",
+
+                "assets.create",
+                "assets.move",
+
+                "scan.checkout",
+                "scan.checkin",
+
+                "locations.view",
+                "locations.manage",
+
+                "repairs.view",
+                "repairs.update",
+
+                "vehicles.view",
+                "vehicles.manage",
+
+                "audits.perform",
+
+                "exceptions.view",
+                "exceptions.resolve",
+
+                "system.export",
+            ],
+
+            "Warehouse Crew": [
+                "dashboard.view",
+                "jobs.view",
+                "inventory.view",
+                "assets.move",
+                "scan.checkout",
+                "scan.checkin",
+                "locations.view",
+                "audits.perform",
+            ],
+
+            "Driver / Event Crew": [
+                "dashboard.view",
+                "jobs.view",
+                "scan.checkout",
+                "scan.checkin",
+                "vehicles.view",
+                "exceptions.view",
+            ],
+
+            "Repair / Maintenance": [
+                "dashboard.view",
+                "inventory.view",
+                "assets.move",
+                "repairs.view",
+                "repairs.update",
+                "locations.view",
+                "exceptions.view",
+            ],
+
+            "Office / Sales": [
+                "dashboard.view",
+
+                "jobs.view",
+                "jobs.create",
+                "jobs.edit",
+
+                "customers.view",
+                "customers.create",
+                "customers.edit",
+
+                "inventory.view",
+
+                "system.export",
+            ],
+        }
+
+        for position_name, permission_codes in role_permissions.items():
+
+            position = con.execute(
+                """
+                SELECT id
+                FROM positions
+                WHERE name = ?
+                """,
+                (position_name,),
+            ).fetchone()
+
+            if not position:
+                continue
+
+            if permission_codes == "__ALL__":
+                permission_rows = con.execute(
+                    """
+                    SELECT id
+                    FROM permissions
+                    ORDER BY id
+                    """
+                ).fetchall()
+
+            else:
+                permission_rows = []
+
+                for permission_code in permission_codes:
+                    permission = con.execute(
+                        """
+                        SELECT id
+                        FROM permissions
+                        WHERE code = ?
+                        """,
+                        (permission_code,),
+                    ).fetchone()
+
+                    if permission:
+                        permission_rows.append(permission)
+
+            for permission in permission_rows:
+                con.execute(
+                    """
+                    INSERT OR IGNORE INTO position_permissions(
+                        position_id,
+                        permission_id,
+                        allowed
+                    )
+                    VALUES (?, ?, 1)
+                    """,
+                    (
+                        position["id"],
+                        permission["id"],
+                    ),
+                )
+
+        con.execute(
+            """
+            INSERT INTO schema_migrations(
+                version,
+                name,
+                applied_at
+            )
+            VALUES (?, ?, ?)
+            """,
+            (
+                9,
+                "Assign default permissions to built-in positions",
+                datetime.now().isoformat(timespec="seconds"),
+            ),
+        )
+
+        current_version = 9
+
+    con.commit()
+
 def get_schema_version(con):
     try:
         row = con.execute(

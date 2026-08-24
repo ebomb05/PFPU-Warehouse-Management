@@ -2,12 +2,30 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..database import connect
+from ..services.auth_service import request_has_permission
 
 router = APIRouter()
 
 
+def deny_access():
+    return RedirectResponse(
+        "/?message=Access denied",
+        status_code=303,
+    )
+
+
 @router.get("/customers", response_class=HTMLResponse)
-def customers_page(request: Request, q: str = "", message: str = ""):
+def customers_page(
+    request: Request,
+    q: str = "",
+    message: str = "",
+):
+    if not request_has_permission(
+        request,
+        "customers.view",
+    ):
+        return deny_access()
+
     con = connect()
 
     if q:
@@ -28,6 +46,7 @@ def customers_page(request: Request, q: str = "", message: str = ""):
                 f"%{q}%",
             ),
         ).fetchall()
+
     else:
         customers = con.execute(
             """
@@ -52,12 +71,19 @@ def customers_page(request: Request, q: str = "", message: str = ""):
 
 @router.post("/customers/create")
 def create_customer(
+    request: Request,
     name: str = Form(...),
     contact_name: str = Form(""),
     phone: str = Form(""),
     email: str = Form(""),
     billing_notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "customers.create",
+    ):
+        return deny_access()
+
     name = name.strip()
 
     if not name:
@@ -116,7 +142,17 @@ def create_customer(
 
 
 @router.get("/customers/{customer_id}", response_class=HTMLResponse)
-def customer_detail(request: Request, customer_id: int, message: str = ""):
+def customer_detail(
+    request: Request,
+    customer_id: int,
+    message: str = "",
+):
+    if not request_has_permission(
+        request,
+        "customers.view",
+    ):
+        return deny_access()
+
     con = connect()
 
     customer = con.execute(
@@ -150,6 +186,7 @@ def customer_detail(request: Request, customer_id: int, message: str = ""):
 
 @router.post("/customers/{customer_id}/update")
 def update_customer(
+    request: Request,
     customer_id: int,
     name: str = Form(...),
     contact_name: str = Form(""),
@@ -157,6 +194,12 @@ def update_customer(
     email: str = Form(""),
     billing_notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "customers.edit",
+    ):
+        return deny_access()
+
     con = connect()
 
     customer = con.execute(
@@ -201,13 +244,25 @@ def update_customer(
     con.close()
 
     return RedirectResponse(
-        f"/customers/{customer_id}?message=Customer updated successfully",
+        (
+            f"/customers/{customer_id}"
+            "?message=Customer updated successfully"
+        ),
         status_code=303,
     )
 
 
 @router.post("/customers/{customer_id}/toggle-active")
-def toggle_customer_active(customer_id: int):
+def toggle_customer_active(
+    request: Request,
+    customer_id: int,
+):
+    if not request_has_permission(
+        request,
+        "customers.edit",
+    ):
+        return deny_access()
+
     con = connect()
 
     customer = con.execute(
@@ -236,7 +291,10 @@ def toggle_customer_active(customer_id: int):
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
         """,
-        (new_status, customer_id),
+        (
+            new_status,
+            customer_id,
+        ),
     )
 
     con.commit()

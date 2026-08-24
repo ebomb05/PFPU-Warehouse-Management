@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>{{ position["name"] }}</h2>
+
+        <p>
+            {{ position["description"] or "" }}
+        </p>
+    </div>
+
+    <div>
+        <a href="/positions">
+            ← Back to Positions
+        </a>
+    </div>
+</header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<!-- =========================================================
+     POSITION DETAILS
+     ========================================================= -->
+
+<section class="panel">
+
+    <h3>Position Details</h3>
+
+    <form
+        method="post"
+        action="/positions/{{ position['id'] }}/edit"
+    >
+
+        <label>Position Name</label>
+
+        <input
+            name="name"
+            value="{{ position['name'] }}"
+            required
+            style="
+                width: 100%;
+                box-sizing: border-box;
+                margin-bottom: 10px;
+            "
+        >
+
+        <label>Description</label>
+
+        <input
+            name="description"
+            value="{{ position['description'] or '' }}"
+            style="
+                width: 100%;
+                box-sizing: border-box;
+                margin-bottom: 10px;
+            "
+        >
+
+        <button type="submit">
+            Save Position Details
+        </button>
+
+    </form>
+
+</section>
+
+
+<!-- =========================================================
+     PERMISSIONS
+     ========================================================= -->
+
+<section class="panel">
+
+    <h3>Permissions</h3>
+
+    <p>
+        Check the permissions this position should have.
+    </p>
+
+    <form
+        method="post"
+        action="/positions/{{ position['id'] }}/permissions"
+    >
+
+        {% for permission in permissions %}
+
+        <div style="margin-bottom: 10px;">
+
+            <label>
+
+                {% set protected_permission =
+                    position["name"] in [
+                        "System Administrator",
+                        "General Manager"
+                    ]
+                    and permission["code"] == "positions.manage"
+                %}
+
+                {% if protected_permission %}
+
+                <input
+                    type="checkbox"
+                    checked
+                    disabled
+                >
+
+                <input
+                    type="hidden"
+                    name="permission_ids"
+                    value="{{ permission['id'] }}"
+                >
+
+                {% else %}
+
+                <input
+                    type="checkbox"
+                    name="permission_ids"
+                    value="{{ permission['id'] }}"
+                    {% if permission["allowed"] %}
+                        checked
+                    {% endif %}
+                >
+
+                {% endif %}
+
+                <strong>
+                    {{ permission["description"] }}
+                </strong>
+
+                {% if protected_permission %}
+                <br>
+                <small>
+                    Required administrative permission — cannot be removed.
+                </small>
+                {% endif %}
+
+            </label>
+
+        </div>
+
+        {% endfor %}
+
+        <button
+            type="submit"
+            class="big"
+        >
+            Save Permissions
+        </button>
+
+    </form>
+
+</section>
+
+
+<!-- =========================================================
+     POSITION STATUS
+     ========================================================= -->
+
+<section class="panel">
+
+    <h3>Position Status</h3>
+
+    <p>
+        Current status:
+        <strong>
+            {% if position["active"] %}
+                Active
+            {% else %}
+                Retired
+            {% endif %}
+        </strong>
+    </p>
+
+    {% if position["name"] in [
+        "System Administrator",
+        "General Manager"
+    ] %}
+
+    <p>
+        This administrative position cannot be retired.
+    </p>
+
+    {% else %}
+
+        {% if position["active"] %}
+
+        <form
+            method="post"
+            action="/positions/{{ position['id'] }}/active"
+        >
+
+            <input
+                type="hidden"
+                name="active"
+                value="0"
+            >
+
+            <button type="submit">
+                Retire Position
+            </button>
+
+        </form>
+
+        {% else %}
+
+        <form
+            method="post"
+            action="/positions/{{ position['id'] }}/active"
+        >
+
+            <input
+                type="hidden"
+                name="active"
+                value="1"
+            >
+
+            <button type="submit">
+                Reactivate Position
+            </button>
+
+        </form>
+
+        {% endif %}
+
+    {% endif %}
+
+</section>
+
+
+{% endblock %}

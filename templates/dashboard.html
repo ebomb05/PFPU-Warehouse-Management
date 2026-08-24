@@ -8,6 +8,22 @@
 </header>
 
 
+{% if message %}
+<section
+    class="panel"
+    style="
+        border: 2px solid #b45309;
+        background: #fef3c7;
+        color: #7c2d12;
+        font-weight: bold;
+        margin-bottom: 18px;
+    "
+>
+    ⚠ {{ message }}
+</section>
+{% endif %}
+
+
 <section class="cards">
 
     {% for k, v in stats.items() %}
@@ -29,6 +45,7 @@
         <h3>Upcoming / Active Jobs</h3>
 
         <table>
+
             <tr>
                 <th>Job</th>
                 <th>Customer</th>
@@ -64,6 +81,7 @@
         <h3>Tracking Priority</h3>
 
         <table>
+
             <tr>
                 <th>Priority</th>
                 <th>Lines</th>
@@ -96,9 +114,11 @@
         track parts, and return repaired equipment to service.
     </p>
 
+    {% if "repairs.view" in request.state.permissions %}
     <a href="/repairs">
         Open Repair Management
     </a>
+    {% endif %}
 
 </section>
 

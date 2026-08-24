@@ -4,6 +4,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..database import connect
+from ..services.auth_service import request_has_permission
 from ..services.repair_service import (
     close_repair_record,
     open_repair_record,
@@ -13,6 +14,13 @@ from ..services.repair_service import (
 router = APIRouter()
 
 
+def deny_access():
+    return RedirectResponse(
+        "/?message=Access denied",
+        status_code=303,
+    )
+
+
 @router.get("/repairs", response_class=HTMLResponse)
 def repairs_page(
     request: Request,
@@ -20,6 +28,12 @@ def repairs_page(
     status_filter: str = "",
     message: str = "",
 ):
+    if not request_has_permission(
+        request,
+        "repairs.view",
+    ):
+        return deny_access()
+
     con = connect()
 
     query = """
@@ -121,11 +135,18 @@ def repairs_page(
 
 @router.post("/repairs/open")
 def repair_open(
+    request: Request,
     barcode_value: str = Form(...),
     issue: str = Form(...),
     notes: str = Form(""),
     parts_needed: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "repairs.update",
+    ):
+        return deny_access()
+
     result = open_repair_record(
         barcode_value=barcode_value,
         issue=issue,
@@ -141,11 +162,18 @@ def repair_open(
 
 @router.post("/repairs/{repair_record_id}/update")
 def repair_update(
+    request: Request,
     repair_record_id: int,
     new_status: str = Form(...),
     notes: str = Form(""),
     parts_needed: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "repairs.update",
+    ):
+        return deny_access()
+
     result = update_repair_status(
         repair_record_id=repair_record_id,
         new_status=new_status,
@@ -161,9 +189,16 @@ def repair_update(
 
 @router.post("/repairs/{repair_record_id}/close")
 def repair_close(
+    request: Request,
     repair_record_id: int,
     resolution_notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "repairs.update",
+    ):
+        return deny_access()
+
     result = close_repair_record(
         repair_record_id=repair_record_id,
         resolution_notes=resolution_notes,

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..database import connect
+from ..services.auth_service import request_has_permission
 from ..services.lost_found_service import (
     locate_asset,
     mark_asset_missing,
@@ -13,12 +14,25 @@ from ..services.lost_found_service import (
 router = APIRouter()
 
 
+def deny_access():
+    return RedirectResponse(
+        "/?message=Access denied",
+        status_code=303,
+    )
+
+
 @router.get("/lost-found", response_class=HTMLResponse)
 def lost_found_page(
     request: Request,
     q: str = "",
     message: str = "",
 ):
+    if not request_has_permission(
+        request,
+        "inventory.view",
+    ):
+        return deny_access()
+
     asset_info = None
 
     if q.strip():
@@ -67,9 +81,16 @@ def lost_found_page(
 
 @router.post("/lost-found/missing")
 def lost_found_mark_missing(
+    request: Request,
     barcode_value: str = Form(...),
     notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "exceptions.resolve",
+    ):
+        return deny_access()
+
     result = mark_asset_missing(
         barcode_value,
         notes=notes,
@@ -87,9 +108,16 @@ def lost_found_mark_missing(
 
 @router.post("/lost-found/found")
 def lost_found_resolve(
+    request: Request,
     barcode_value: str = Form(...),
     notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "assets.move",
+    ):
+        return deny_access()
+
     result = resolve_found_asset(
         barcode_value,
         notes=notes,

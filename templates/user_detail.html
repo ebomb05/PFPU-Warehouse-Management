@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+
+    <div>
+        <h2>{{ user["display_name"] }}</h2>
+
+        <p>
+            Username: {{ user["username"] }}
+        </p>
+    </div>
+
+    <div>
+        <a href="/users">
+            ← Back to Users
+        </a>
+    </div>
+
+</header>
+
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+
+<section class="panel">
+
+    <h3>User Details</h3>
+
+    <form
+        method="post"
+        action="/users/{{ user['id'] }}/edit"
+    >
+
+        <label>Username</label>
+
+        <input
+            name="username"
+            value="{{ user['username'] }}"
+            required
+        >
+
+        <label>Display Name</label>
+
+        <input
+            name="display_name"
+            value="{{ user['display_name'] }}"
+            required
+        >
+
+        <label>Email</label>
+
+        <input
+            name="email"
+            type="email"
+            value="{{ user['email'] or '' }}"
+        >
+
+        <button type="submit">
+            Save User Details
+        </button>
+
+    </form>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Assigned Positions</h3>
+
+    <p>
+        A user may have more than one position.
+        Their access will eventually combine permissions
+        from every assigned position.
+    </p>
+
+    <form
+        method="post"
+        action="/users/{{ user['id'] }}/positions"
+    >
+
+        {% for position in positions %}
+
+        <div style="margin-bottom: 10px;">
+
+            <label>
+
+                <input
+                    type="checkbox"
+                    name="position_ids"
+                    value="{{ position['id'] }}"
+                    {% if position["assigned"] %}
+                        checked
+                    {% endif %}
+                    {% if not position["active"] and not position["assigned"] %}
+                        disabled
+                    {% endif %}
+                >
+
+                <strong>
+                    {{ position["name"] }}
+                </strong>
+
+                {% if not position["active"] %}
+                    — Retired
+                {% endif %}
+
+                {% if position["description"] %}
+                <br>
+                <small>
+                    {{ position["description"] }}
+                </small>
+                {% endif %}
+
+            </label>
+
+        </div>
+
+        {% endfor %}
+
+        <button
+            type="submit"
+            class="big"
+        >
+            Save Positions
+        </button>
+
+    </form>
+
+</section>
+
+<section class="panel">
+
+    <h3>Set Password</h3>
+
+    <p>
+        Set or replace this user's login password.
+    </p>
+
+    <form
+        method="post"
+        action="/users/{{ user['id'] }}/password"
+    >
+
+        <label>New Password</label>
+
+        <input
+            type="password"
+            name="new_password"
+            minlength="8"
+            autocomplete="new-password"
+            required
+        >
+
+        <label>Confirm Password</label>
+
+        <input
+            type="password"
+            name="confirm_password"
+            minlength="8"
+            autocomplete="new-password"
+            required
+        >
+
+        <button type="submit">
+            Set Password
+        </button>
+
+    </form>
+
+</section>
+
+<section class="panel">
+
+    <h3>Account Status</h3>
+
+    <p>
+        Current status:
+        <strong>
+            {% if user["active"] %}
+                Active
+            {% else %}
+                Inactive
+            {% endif %}
+        </strong>
+    </p>
+
+    {% if user["active"] %}
+
+    <form
+        method="post"
+        action="/users/{{ user['id'] }}/active"
+    >
+
+        <input
+            type="hidden"
+            name="active"
+            value="0"
+        >
+
+        <button type="submit">
+            Deactivate User
+        </button>
+
+    </form>
+
+    {% else %}
+
+    <form
+        method="post"
+        action="/users/{{ user['id'] }}/active"
+    >
+
+        <input
+            type="hidden"
+            name="active"
+            value="1"
+        >
+
+        <button type="submit">
+            Reactivate User
+        </button>
+
+    </form>
+
+    {% endif %}
+
+</section>
+
+
+{% endblock %}

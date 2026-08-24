@@ -13,9 +13,15 @@ from ..services.job_dispatch_service import dispatch_asset_to_job_site
 from ..services.job_return_service import return_asset_to_prep
 from ..services.return_inspection_service import route_returned_asset
 from ..services.return_routing_service import find_next_job_for_item
+from ..services.auth_service import request_has_permission
 
 router = APIRouter()
 
+def deny_access():
+    return RedirectResponse(
+        "/?message=Access denied",
+        status_code=303,
+    )
 
 def next_job_number(con) -> str:
     """
@@ -53,7 +59,16 @@ def next_job_number(con) -> str:
 
 
 @router.get("/jobs", response_class=HTMLResponse)
-def jobs(request: Request, message: str = ""):
+def jobs(
+    request: Request,
+    message: str = "",
+):
+    if not request_has_permission(
+        request,
+        "jobs.view",
+    ):
+        return deny_access()
+
     con = connect()
 
     rows = con.execute(
@@ -92,6 +107,7 @@ def jobs(request: Request, message: str = ""):
 
 @router.post("/jobs/create")
 def create_job(
+    request: Request,
     customer_id: int = Form(...),
     event_name: str = Form(""),
     venue: str = Form(""),
@@ -101,6 +117,12 @@ def create_job(
     return_time: str = Form(""),
     notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "jobs.create",
+    ):
+        return deny_access()
+
     con = connect()
 
     customer = con.execute(
@@ -177,7 +199,17 @@ def create_job(
 
 
 @router.get("/jobs/{job_id}", response_class=HTMLResponse)
-def job_detail(request: Request, job_id: int, message: str = ""):
+def job_detail(
+    request: Request,
+    job_id: int,
+    message: str = "",
+):
+    if not request_has_permission(
+        request,
+        "jobs.view",
+    ):
+        return deny_access()
+
     con = connect()
 
     job = con.execute(
@@ -330,11 +362,18 @@ def job_detail(request: Request, job_id: int, message: str = ""):
 
 @router.post("/jobs/{job_id}/add-line")
 def add_job_line(
+    request: Request,
     job_id: int,
     item_master_id: int = Form(...),
     qty_needed: int = Form(...),
     notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "jobs.edit",
+    ):
+        return deny_access()
+
     con = connect()
 
     job = con.execute(
@@ -421,9 +460,16 @@ def add_job_line(
 
 @router.post("/jobs/{job_id}/apply-pack")
 def apply_job_pack(
+    request: Request,
     job_id: int,
-    job_pack_id: int = Form(...),
+    pack_id: int = Form(...),
 ):
+    if not request_has_permission(
+        request,
+        "jobs.edit",
+    ):
+        return deny_access()
+
     con = connect()
 
     job = con.execute(
@@ -559,9 +605,16 @@ def apply_job_pack(
 
 @router.post("/jobs/{job_id}/vehicles/assign")
 def assign_vehicle_to_job(
+    request: Request,
     job_id: int,
     vehicle_id: int = Form(...),
 ):
+    if not request_has_permission(
+        request,
+        "jobs.edit",
+    ):
+        return deny_access()
+
     con = connect()
 
     job = con.execute(
@@ -664,9 +717,16 @@ def assign_vehicle_to_job(
 
 @router.post("/jobs/{job_id}/vehicles/{vehicle_id}/remove")
 def remove_vehicle_from_job(
+    request: Request,
     job_id: int,
     vehicle_id: int,
 ):
+    if not request_has_permission(
+        request,
+        "jobs.edit",
+    ):
+        return deny_access()
+
     con = connect()
 
     loaded_assets = con.execute(
@@ -723,6 +783,13 @@ def job_pull_page(
     job_id: int,
     message: str = "",
 ):
+
+    if not request_has_permission(
+        request,
+        "jobs.view",
+    ):
+        return deny_access()
+
     con = connect()
 
     job = con.execute(
@@ -782,9 +849,16 @@ def job_pull_page(
 
 @router.post("/jobs/{job_id}/pull")
 def job_pull_scan(
+    request: Request,
     job_id: int,
     barcode_value: str = Form(...),
 ):
+    if not request_has_permission(
+        request,
+        "scan.checkout",
+    ):
+        return deny_access()
+
     barcode_value = barcode_value.strip()
 
     if not barcode_value:
@@ -811,6 +885,13 @@ def job_load_page(
     vehicle_id: int | None = None,
     message: str = "",
 ):
+
+    if not request_has_permission(
+        request,
+        "jobs.view",
+    ):
+        return deny_access()
+
     con = connect()
 
     job = con.execute(
@@ -947,10 +1028,17 @@ def job_load_page(
 
 @router.post("/jobs/{job_id}/load")
 def job_load_scan(
+    request: Request,
     job_id: int,
     vehicle_id: int = Form(...),
     barcode_value: str = Form(...),
 ):
+    if not request_has_permission(
+        request,
+        "scan.checkout",
+    ):
+        return deny_access()
+
     result = load_asset_to_vehicle(
         job_id,
         vehicle_id,
@@ -974,6 +1062,13 @@ def job_dispatch_page(
     vehicle_id: int | None = None,
     message: str = "",
 ):
+
+    if not request_has_permission(
+        request,
+        "jobs.view",
+    ):
+        return deny_access()
+
     con = connect()
 
     job = con.execute(
@@ -1112,10 +1207,17 @@ def job_dispatch_page(
 
 @router.post("/jobs/{job_id}/dispatch")
 def job_dispatch_scan(
+    request: Request,
     job_id: int,
     vehicle_id: int = Form(...),
     barcode_value: str = Form(...),
 ):
+    if not request_has_permission(
+        request,
+        "scan.checkout",
+    ):
+        return deny_access()
+
     result = dispatch_asset_to_job_site(
         job_id,
         vehicle_id,
@@ -1138,6 +1240,13 @@ def job_return_page(
     job_id: int,
     message: str = "",
 ):
+
+    if not request_has_permission(
+        request,
+        "jobs.view",
+    ):
+        return deny_access()
+
     con = connect()
 
     job = con.execute(
@@ -1262,9 +1371,16 @@ def job_return_page(
 
 @router.post("/jobs/{job_id}/return")
 def job_return_scan(
+    request: Request,
     job_id: int,
     barcode_value: str = Form(...),
 ):
+    if not request_has_permission(
+        request,
+        "scan.checkin",
+    ):
+        return deny_access()
+
     result = return_asset_to_prep(
         job_id,
         barcode_value,
@@ -1281,11 +1397,18 @@ def job_return_scan(
 
 @router.post("/jobs/{job_id}/return/inspect")
 def job_return_inspect(
+    request: Request,
     job_id: int,
     barcode_value: str = Form(...),
     action: str = Form(...),
     notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "scan.checkin",
+    ):
+        return deny_access()
+
     result = route_returned_asset(
         job_id=job_id,
         barcode_value=barcode_value,

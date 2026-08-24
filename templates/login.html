@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>PFPU Login</h2>
+        <p>Sign in to access the Warehouse Manager.</p>
+    </div>
+</header>
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+<section class="panel">
+
+    <form
+        method="post"
+        action="/login"
+    >
+
+        <label>Username</label>
+
+        <input
+            name="username"
+            autocomplete="username"
+            required
+        >
+
+        <label>Password</label>
+
+        <input
+            type="password"
+            name="password"
+            autocomplete="current-password"
+            required
+        >
+
+        <button
+            type="submit"
+            class="big"
+        >
+            Sign In
+        </button>
+
+    </form>
+
+</section>
+
+{% endblock %}

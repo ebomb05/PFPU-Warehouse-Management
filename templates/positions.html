@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>Positions & Permissions</h2>
+        <p>
+            Manage role access without changing application code.
+        </p>
+    </div>
+</header>
+
+{% if message %}
+<section class="panel">
+    <strong>{{ message }}</strong>
+</section>
+{% endif %}
+
+<section class="panel">
+
+    <h3>Create Position</h3>
+
+    <form
+        method="post"
+        action="/positions/create"
+    >
+
+        <label>Position Name</label>
+
+        <input
+            name="name"
+            placeholder="Example: Shop Lead"
+            required
+        >
+
+        <label>Description</label>
+
+        <input
+            name="description"
+            placeholder="Describe this position"
+        >
+
+        <button
+            type="submit"
+            class="big"
+        >
+            Create Position
+        </button>
+
+    </form>
+
+</section>
+
+<section class="panel">
+
+    <h3>Positions</h3>
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Position</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for position in positions %}
+
+        <tr>
+
+            <td>
+                <strong>
+                    {{ position["name"] }}
+                </strong>
+            </td>
+
+            <td>
+                {{ position["description"] or "" }}
+            </td>
+
+            <td>
+                {% if position["active"] %}
+                    Active
+                {% else %}
+                    Retired
+                {% endif %}
+            </td>
+
+            <td>
+                <a href="/positions/{{ position['id'] }}">
+                    Edit Permissions
+                </a>
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</section>
+
+{% endblock %}

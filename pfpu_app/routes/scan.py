@@ -1,4 +1,3 @@
-from typing import Optional
 from urllib.parse import quote
 
 from fastapi import APIRouter, Form, Request
@@ -6,9 +5,17 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..database import connect
 from ..services.asset_service import move_asset
+from ..services.auth_service import request_has_permission
 from ..services.repair_service import open_repair_record
 
 router = APIRouter()
+
+
+def deny_access():
+    return RedirectResponse(
+        "/?message=Access denied",
+        status_code=303,
+    )
 
 
 @router.get("/scan", response_class=HTMLResponse)
@@ -16,6 +23,21 @@ def scan_page(
     request: Request,
     message: str = "",
 ):
+    permissions = request.state.permissions
+
+    allowed = any(
+        permission in permissions
+        for permission in (
+            "assets.move",
+            "scan.checkout",
+            "scan.checkin",
+            "repairs.update",
+        )
+    )
+
+    if not allowed:
+        return deny_access()
+
     con = connect()
 
     jobs = con.execute(
@@ -64,6 +86,7 @@ def scan_page(
 
 @router.post("/scan")
 def scan(
+    request: Request,
     barcode_value: str = Form(...),
     action: str = Form(...),
     to_location_id: str = Form(""),
@@ -87,6 +110,46 @@ def scan(
         if job_id
         else None
     )
+
+    # ---------------------------------------------------------
+    # PERMISSION CHECK FOR REQUESTED ACTION
+    # ---------------------------------------------------------
+
+    if action == "move":
+        if not request_has_permission(
+            request,
+            "assets.move",
+        ):
+            return deny_access()
+
+    elif action == "repair":
+        if not request_has_permission(
+            request,
+            "repairs.update",
+        ):
+            return deny_access()
+
+    elif action in ("prep", "checkout"):
+        if not request_has_permission(
+            request,
+            "scan.checkout",
+        ):
+            return deny_access()
+
+    elif action == "return":
+        if not request_has_permission(
+            request,
+            "scan.checkin",
+        ):
+            return deny_access()
+
+    else:
+        return RedirectResponse(
+            "/scan?message=" + quote(
+                "Unknown Scan Station action."
+            ),
+            status_code=303,
+        )
 
     con = connect()
 
@@ -114,13 +177,16 @@ def scan(
     if not asset:
         return RedirectResponse(
             "/scan?message="
-            + quote("Asset / QR not found. Create the asset first."),
+            + quote(
+                "Asset / QR not found. Create the asset first."
+            ),
             status_code=303,
         )
 
     # ---------------------------------------------------------
     # MANUAL LOCATION MOVE
     # ---------------------------------------------------------
+
     if action == "move":
 
         if to_location_id_value is None:
@@ -144,8 +210,8 @@ def scan(
 
     # ---------------------------------------------------------
     # REPAIR
-    # Opens a formal repair record instead of only changing status.
     # ---------------------------------------------------------
+
     if action == "repair":
 
         issue = (
@@ -168,13 +234,15 @@ def scan(
 
     # ---------------------------------------------------------
     # JOB WORKFLOW ACTIONS
-    # These now have dedicated workflow pages/services.
-    # We intentionally do not bypass those rules here.
+    # Dedicated workflow screens intentionally handle these.
     # ---------------------------------------------------------
+
     if action == "prep":
 
         if job_id_value is None:
-            message = "Choose a job before pulling equipment to PREP."
+            message = (
+                "Choose a job before pulling equipment to PREP."
+            )
         else:
             message = (
                 "Use the Job Pull / PREP screen for job equipment. "
@@ -189,8 +257,8 @@ def scan(
     if action == "checkout":
 
         message = (
-            "Use the Job Load / Dispatch workflow to check equipment "
-            "out to a job."
+            "Use the Job Load / Dispatch workflow to check "
+            "equipment out to a job."
         )
 
         return RedirectResponse(
@@ -201,8 +269,9 @@ def scan(
     if action == "return":
 
         message = (
-            "Use the job Return Equipment screen to check equipment in. "
-            "This preserves return inspection and job-status tracking."
+            "Use the job Return Equipment screen to check "
+            "equipment in. This preserves return inspection "
+            "and job-status tracking."
         )
 
         return RedirectResponse(
@@ -211,6 +280,7 @@ def scan(
         )
 
     return RedirectResponse(
-        "/scan?message=" + quote("Unknown Scan Station action."),
+        "/scan?message="
+        + quote("Unknown Scan Station action."),
         status_code=303,
     )

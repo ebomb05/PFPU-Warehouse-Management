@@ -4,14 +4,31 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..database import connect
+from ..services.auth_service import request_has_permission
 
 router = APIRouter()
 
 SHELF_PATTERN = re.compile(r"^\d{3}\.\d{3}\.\d{3}$")
 
 
+def deny_access():
+    return RedirectResponse(
+        "/?message=Access denied",
+        status_code=303,
+    )
+
+
 @router.get("/locations", response_class=HTMLResponse)
-def locations_page(request: Request, message: str = ""):
+def locations_page(
+    request: Request,
+    message: str = "",
+):
+    if not request_has_permission(
+        request,
+        "locations.view",
+    ):
+        return deny_access()
+
     con = connect()
 
     rows = con.execute(
@@ -41,11 +58,18 @@ def locations_page(request: Request, message: str = ""):
 
 @router.post("/locations/create")
 def create_location(
+    request: Request,
     code: str = Form(...),
     name: str = Form(""),
     location_type: str = Form("Shelf"),
     notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "locations.manage",
+    ):
+        return deny_access()
+
     code = code.strip().upper()
     name = name.strip()
     notes = notes.strip()
@@ -57,7 +81,10 @@ def create_location(
     if location_type == "Shelf":
         if not SHELF_PATTERN.match(code):
             return RedirectResponse(
-                "/locations?message=Shelf locations must use format 001.002.003",
+                (
+                    "/locations?message="
+                    "Shelf locations must use format 001.002.003"
+                ),
                 status_code=303,
             )
 
@@ -128,8 +155,19 @@ def create_location(
         status_code=303,
     )
 
+
 @router.get("/locations/{location_id}", response_class=HTMLResponse)
-def location_detail(request: Request, location_id: int, message: str = ""):
+def location_detail(
+    request: Request,
+    location_id: int,
+    message: str = "",
+):
+    if not request_has_permission(
+        request,
+        "locations.view",
+    ):
+        return deny_access()
+
     con = connect()
 
     location = con.execute(
@@ -143,6 +181,7 @@ def location_detail(request: Request, location_id: int, message: str = ""):
 
     if not location:
         con.close()
+
         return RedirectResponse(
             "/locations?message=Location not found",
             status_code=303,
@@ -150,7 +189,11 @@ def location_detail(request: Request, location_id: int, message: str = ""):
 
     assets = con.execute(
         """
-        SELECT id, asset_id, description, status
+        SELECT
+            id,
+            asset_id,
+            description,
+            status
         FROM assets
         WHERE location_id = ?
         ORDER BY description, asset_id
@@ -174,11 +217,18 @@ def location_detail(request: Request, location_id: int, message: str = ""):
 
 @router.post("/locations/{location_id}/update")
 def update_location(
+    request: Request,
     location_id: int,
     name: str = Form(""),
     location_type: str = Form(...),
     notes: str = Form(""),
 ):
+    if not request_has_permission(
+        request,
+        "locations.manage",
+    ):
+        return deny_access()
+
     con = connect()
 
     location = con.execute(
@@ -192,6 +242,7 @@ def update_location(
 
     if not location:
         con.close()
+
         return RedirectResponse(
             "/locations?message=Location not found",
             status_code=303,
@@ -218,13 +269,25 @@ def update_location(
     con.close()
 
     return RedirectResponse(
-        f"/locations/{location_id}?message=Location updated successfully",
+        (
+            f"/locations/{location_id}"
+            "?message=Location updated successfully"
+        ),
         status_code=303,
     )
 
 
 @router.post("/locations/{location_id}/toggle-active")
-def toggle_location_active(location_id: int):
+def toggle_location_active(
+    request: Request,
+    location_id: int,
+):
+    if not request_has_permission(
+        request,
+        "locations.manage",
+    ):
+        return deny_access()
+
     con = connect()
 
     location = con.execute(
@@ -238,6 +301,7 @@ def toggle_location_active(location_id: int):
 
     if not location:
         con.close()
+
         return RedirectResponse(
             "/locations?message=Location not found",
             status_code=303,
@@ -280,7 +344,10 @@ def toggle_location_active(location_id: int):
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
         """,
-        (new_status, location_id),
+        (
+            new_status,
+            location_id,
+        ),
     )
 
     con.commit()
