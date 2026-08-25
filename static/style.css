@@ -8,3 +8,236 @@
     font:inherit;
     background:white;
 }
+/* =========================================================
+   PFPU RESPONSIVE / TABLET FOUNDATION
+   Phase 6.2A
+   ========================================================= */
+
+@media (max-width: 1100px) {
+
+    .cards {
+        grid-template-columns: repeat(3, minmax(140px, 1fr));
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+    }
+
+    main {
+        padding: 20px;
+    }
+
+    input,
+    select,
+    button {
+        min-height: 44px;
+    }
+}
+
+
+@media (max-width: 800px) {
+
+    body {
+        display: block;
+    }
+
+    aside {
+        position: relative;
+        width: 100%;
+        min-height: auto;
+        padding: 14px;
+    }
+
+    aside h1 {
+        margin: 0 0 12px;
+    }
+
+    nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    nav a {
+        margin: 0;
+        padding: 10px 12px;
+    }
+
+    main {
+        margin-left: 0;
+        width: 100%;
+        padding: 16px;
+    }
+
+    header,
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .cards {
+        grid-template-columns: repeat(2, minmax(130px, 1fr));
+    }
+
+    .rowform {
+        flex-direction: column;
+    }
+
+    .rowform input,
+    .rowform select,
+    .rowform button,
+    .select-search {
+        width: 100%;
+        min-width: 0;
+    }
+
+    input,
+    select,
+    button {
+        min-height: 48px;
+        font-size: 16px;
+    }
+
+    .scanbox {
+        font-size: 24px;
+        min-height: 64px;
+    }
+
+    .big {
+        min-height: 58px;
+        font-size: 19px;
+    }
+
+    table {
+        font-size: 14px;
+    }
+
+    th,
+    td {
+        padding: 8px;
+    }
+}
+
+
+@media (max-width: 520px) {
+
+    .cards {
+        grid-template-columns: 1fr;
+    }
+
+    h2 {
+        font-size: 26px;
+    }
+
+    main {
+        padding: 12px;
+    }
+}
+
+
+/* =========================================================
+   PFPU SCANNER WORKFLOW
+   Phase 6.2B
+   ========================================================= */
+
+.scan-feedback {
+    padding: 16px 18px;
+    margin-bottom: 18px;
+    border-radius: 12px;
+    border: 2px solid var(--line);
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.scan-feedback.success {
+    background: var(--good);
+    border-color: #65b879;
+}
+
+.scan-feedback.error {
+    background: var(--bad);
+    border-color: #d96b6b;
+}
+
+.scanbox:focus {
+    outline: 3px solid #8ba8e8;
+    outline-offset: 2px;
+    border-color: var(--accent);
+}
+
+.scan-ready {
+    display: inline-block;
+    margin-bottom: 10px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--good);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+
+.scan-feedback.info {
+    background: #eef2ff;
+    border-color: #8ba8e8;
+}
+
+
+/* =========================================================
+   SCAN STATION FEEDBACK
+   Phase 6.2B
+   ========================================================= */
+
+.scan-feedback {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+    border: 2px solid;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.scan-feedback.success {
+    background: #e8f7ec;
+    border-color: #69b879;
+    color: #185c28;
+}
+
+.scan-feedback.error {
+    background: #ffe8e8;
+    border-color: #dc6b6b;
+    color: #8a1f1f;
+}
+
+.scan-feedback.info {
+    background: #eef2ff;
+    border-color: #8ba8e8;
+    color: #263f73;
+}
+
+.scan-feedback-icon {
+    flex: 0 0 auto;
+    font-size: 30px;
+    line-height: 1;
+}
+
+.scan-feedback-message {
+    flex: 1;
+}
+
+@media (max-width: 800px) {
+
+    .scan-feedback {
+        padding: 16px;
+        font-size: 17px;
+    }
+
+    .scan-feedback-icon {
+        font-size: 28px;
+    }
+
+}
+

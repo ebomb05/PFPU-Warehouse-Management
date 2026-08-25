@@ -22,6 +22,7 @@ def deny_access():
 def scan_page(
     request: Request,
     message: str = "",
+    result: str = "",
 ):
     permissions = request.state.permissions
 
@@ -80,6 +81,7 @@ def scan_page(
             "jobs": jobs,
             "locations": locations,
             "message": message,
+            "result": result,
         },
     )
 
@@ -145,11 +147,14 @@ def scan(
 
     else:
         return RedirectResponse(
-            "/scan?message=" + quote(
-                "Unknown Scan Station action."
-            ),
+            "/scan?result=error&message="
+            + quote("Unknown Scan Station action."),
             status_code=303,
         )
+
+    # ---------------------------------------------------------
+    # FIND ASSET
+    # ---------------------------------------------------------
 
     con = connect()
 
@@ -176,7 +181,7 @@ def scan(
 
     if not asset:
         return RedirectResponse(
-            "/scan?message="
+            "/scan?result=error&message="
             + quote(
                 "Asset / QR not found. Create the asset first."
             ),
@@ -191,20 +196,27 @@ def scan(
 
         if to_location_id_value is None:
             return RedirectResponse(
-                "/scan?message="
+                "/scan?result=error&message="
                 + quote("Choose a destination location."),
                 status_code=303,
             )
 
-        result = move_asset(
+        move_result = move_asset(
             asset_id=asset["id"],
             to_location_id=to_location_id_value,
             action="Manual Move",
             notes=notes,
         )
 
+        result_type = (
+            "success"
+            if move_result["success"]
+            else "error"
+        )
+
         return RedirectResponse(
-            "/scan?message=" + quote(result["message"]),
+            f"/scan?result={result_type}&message="
+            + quote(move_result["message"]),
             status_code=303,
         )
 
@@ -220,20 +232,28 @@ def scan(
             else "Sent to repair from Scan Station"
         )
 
-        result = open_repair_record(
+        repair_result = open_repair_record(
             barcode_value=barcode_value,
             issue=issue,
             notes=notes,
             job_id=job_id_value,
         )
 
+        result_type = (
+            "success"
+            if repair_result["success"]
+            else "error"
+        )
+
         return RedirectResponse(
-            "/scan?message=" + quote(result["message"]),
+            f"/scan?result={result_type}&message="
+            + quote(repair_result["message"]),
             status_code=303,
         )
 
     # ---------------------------------------------------------
     # JOB WORKFLOW ACTIONS
+    #
     # Dedicated workflow screens intentionally handle these.
     # ---------------------------------------------------------
 
@@ -250,7 +270,8 @@ def scan(
             )
 
         return RedirectResponse(
-            "/scan?message=" + quote(message),
+            "/scan?result=info&message="
+            + quote(message),
             status_code=303,
         )
 
@@ -262,7 +283,8 @@ def scan(
         )
 
         return RedirectResponse(
-            "/scan?message=" + quote(message),
+            "/scan?result=info&message="
+            + quote(message),
             status_code=303,
         )
 
@@ -275,12 +297,13 @@ def scan(
         )
 
         return RedirectResponse(
-            "/scan?message=" + quote(message),
+            "/scan?result=info&message="
+            + quote(message),
             status_code=303,
         )
 
     return RedirectResponse(
-        "/scan?message="
+        "/scan?result=error&message="
         + quote("Unknown Scan Station action."),
         status_code=303,
     )

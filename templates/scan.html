@@ -14,9 +14,36 @@
 
 
 {% if message %}
-<section class="panel">
-    <strong>{{ message }}</strong>
+
+<section
+    class="
+        scan-feedback
+        {% if result == 'success' %}
+            success
+        {% elif result == 'error' %}
+            error
+        {% else %}
+            info
+        {% endif %}
+    "
+>
+
+    <div class="scan-feedback-icon">
+        {% if result == "success" %}
+            &#10003;
+        {% elif result == "error" %}
+            &#9888;
+        {% else %}
+            &#8505;
+        {% endif %}
+    </div>
+
+    <div class="scan-feedback-message">
+        {{ message }}
+    </div>
+
 </section>
+
 {% endif %}
 
 
@@ -68,7 +95,7 @@
             {% if request.state.can("scan.checkout") %}
 
             <option value="prep">
-                Job Pull → PREP
+                Job Pull &rarr; PREP
             </option>
 
             <option value="checkout">
@@ -98,10 +125,9 @@
         <label>Job</label>
 
         <select
-            name="customer_id"
-            required
+            name="job_id"
             data-searchable="true"
-            data-search-placeholder="Search customers..."
+            data-search-placeholder="Search jobs..."
         >
 
             <option value="">
@@ -112,7 +138,7 @@
 
             <option value="{{ job['id'] }}">
                 {{ job["job_number"] }}
-                — {{ job["customer"] }}
+                &mdash; {{ job["customer"] }}
                 {{ job["event_name"] or "" }}
                 [{{ job["status"] }}]
             </option>
@@ -144,7 +170,7 @@
                 {{ location["code"] }}
 
                 {% if location["name"] %}
-                    — {{ location["name"] }}
+                    &mdash; {{ location["name"] }}
                 {% endif %}
 
                 ({{ location["location_type"] }})
@@ -207,7 +233,10 @@
         window.addEventListener(
             "load",
             function () {
+
+                scanInput.value = "";
                 scanInput.focus();
+
             }
         );
 

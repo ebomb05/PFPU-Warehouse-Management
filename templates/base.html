@@ -6,7 +6,7 @@
 
     <title>PFPU Warehouse Manager</title>
 
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=6.2b">
 </head>
 
 <body>
@@ -254,6 +254,98 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         );
     });
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const scanInput =
+        document.querySelector(
+            "#scan-input, #barcode-input, #audit-scan"
+        );
+
+    if (!scanInput) {
+        return;
+    }
+
+    /*
+     * Make scanner-heavy pages immediately ready.
+     */
+    scanInput.focus();
+
+    /*
+     * If the field still contains anything after a browser
+     * restore/back action, selecting it means the next scan
+     * replaces the old value instead of appending to it.
+     */
+    scanInput.select();
+
+
+    /*
+     * Add a visible Scanner Ready indicator above the field.
+     */
+    const readyIndicator =
+        document.createElement("div");
+
+    readyIndicator.className = "scan-ready";
+    readyIndicator.textContent = "● Scanner Ready";
+
+    scanInput.parentNode.insertBefore(
+        readyIndicator,
+        scanInput
+    );
+
+
+    /*
+     * Update the indicator when focus moves in/out of the
+     * scanner field.
+     */
+    scanInput.addEventListener(
+        "focus",
+        function () {
+            readyIndicator.textContent =
+                "● Scanner Ready";
+        }
+    );
+
+    scanInput.addEventListener(
+        "blur",
+        function () {
+            readyIndicator.textContent =
+                "Scanner Paused — tap scan field to resume";
+        }
+    );
+
+
+    /*
+     * Prevent accidental double submission.
+     * Barcode scanners normally send ENTER after the code.
+     */
+    const form = scanInput.closest("form");
+
+    if (form) {
+
+        form.addEventListener(
+            "submit",
+            function () {
+
+                const submitButton =
+                    form.querySelector(
+                        'button[type="submit"]'
+                    );
+
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.textContent =
+                        "Processing...";
+                }
+
+            }
+        );
+
+    }
+
 });
 </script>
 
