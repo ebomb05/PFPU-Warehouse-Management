@@ -19,6 +19,8 @@
 {% endif %}
 
 
+{% if request.state.can("audits.perform") %}
+
 <section class="panel">
 
     <h3>Start Location Audit</h3>
@@ -64,6 +66,8 @@
     </form>
 
 </section>
+
+{% endif %}
 
 
 <section class="panel">

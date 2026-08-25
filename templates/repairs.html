@@ -19,6 +19,8 @@
 {% endif %}
 
 
+{% if request.state.can("repairs.update") %}
+
 <section class="panel">
 
     <h3>Open Repair Ticket</h3>
@@ -94,53 +96,56 @@
 
 </section>
 
+{% endif %}
+
 
 <section class="panel">
 
-<form
-    method="get"
-    action="/repairs"
-    style="margin-bottom: 18px;"
->
-
-    <input
-        name="q"
-        value="{{ q }}"
-        placeholder="Search asset, description, issue, or notes"
+    <form
+        method="get"
+        action="/repairs"
+        style="margin-bottom: 18px;"
     >
 
-    <select name="status_filter">
-
-        <option value="">
-            All open statuses
-        </option>
-
-        {% for status in [
-            "Repair",
-            "Waiting for Parts",
-            "Out of Commission",
-            "Needs Replacement",
-            "Dead"
-        ] %}
-
-        <option
-            value="{{ status }}"
-            {% if status_filter == status %}
-                selected
-            {% endif %}
+        <input
+            name="q"
+            value="{{ q }}"
+            placeholder="Search asset, description, issue, or notes"
         >
-            {{ status }}
-        </option>
 
-        {% endfor %}
+        <select name="status_filter">
 
-    </select>
+            <option value="">
+                All open statuses
+            </option>
 
-    <button type="submit">
-        Filter Repairs
-    </button>
+            {% for status in [
+                "Repair",
+                "Waiting for Parts",
+                "Out of Commission",
+                "Needs Replacement",
+                "Dead"
+            ] %}
 
-</form>
+            <option
+                value="{{ status }}"
+                {% if status_filter == status %}
+                    selected
+                {% endif %}
+            >
+                {{ status }}
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+        <button type="submit">
+            Filter Repairs
+        </button>
+
+    </form>
+
 
     <h3>Open Repairs</h3>
 
@@ -180,6 +185,8 @@
                 {{ repair["opened_at"] }}
             </p>
 
+
+            {% if request.state.can("repairs.update") %}
 
             <form
                 method="post"
@@ -251,6 +258,8 @@
                 </button>
 
             </form>
+
+            {% endif %}
 
         </section>
 

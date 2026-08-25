@@ -6,7 +6,7 @@
     <div>
         <h2>Job Packs</h2>
         <p>
-            Create reusable equipment packages for common jobs.
+            View reusable equipment packages for common jobs.
         </p>
     </div>
 </header>
@@ -16,6 +16,9 @@
     <strong>{{ message }}</strong>
 </section>
 {% endif %}
+
+
+{% if request.state.can("jobs.edit") %}
 
 <section class="panel">
 
@@ -47,6 +50,8 @@
     </form>
 
 </section>
+
+{% endif %}
 
 
 <section class="panel">

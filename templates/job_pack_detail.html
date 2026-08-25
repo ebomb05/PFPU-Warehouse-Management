@@ -27,6 +27,8 @@
 {% endif %}
 
 
+{% if request.state.can("jobs.edit") %}
+
 <section class="panel">
 
     <h3>Pack Information</h3>
@@ -130,6 +132,41 @@
 
 </section>
 
+{% else %}
+
+<section class="panel">
+
+    <h3>Pack Information</h3>
+
+    <table>
+
+        <tr>
+            <th>Job Pack Name</th>
+            <td>{{ pack["name"] }}</td>
+        </tr>
+
+        <tr>
+            <th>Description</th>
+            <td>{{ pack["description"] or "" }}</td>
+        </tr>
+
+        <tr>
+            <th>Status</th>
+            <td>
+                {% if pack["active"] %}
+                    Active
+                {% else %}
+                    Retired
+                {% endif %}
+            </td>
+        </tr>
+
+    </table>
+
+</section>
+
+{% endif %}
+
 
 <section class="panel">
 
@@ -146,7 +183,10 @@
                 <th>Owned</th>
                 <th>Pack Qty</th>
                 <th>Notes</th>
+
+                {% if request.state.can("jobs.edit") %}
                 <th>Actions</th>
+                {% endif %}
             </tr>
         </thead>
 
@@ -169,6 +209,9 @@
                 <td>
                     {{ item["qty_total"] }}
                 </td>
+
+
+                {% if request.state.can("jobs.edit") %}
 
                 <td colspan="3">
 
@@ -212,6 +255,18 @@
 
                 </td>
 
+                {% else %}
+
+                <td>
+                    {{ item["qty_needed"] }}
+                </td>
+
+                <td>
+                    {{ item["notes"] or "" }}
+                </td>
+
+                {% endif %}
+
             </tr>
 
         {% endfor %}
@@ -230,6 +285,8 @@
 
 </section>
 
+
+{% if request.state.can("jobs.edit") %}
 
 <section class="panel">
 
@@ -265,5 +322,7 @@
     </form>
 
 </section>
+
+{% endif %}
 
 {% endblock %}

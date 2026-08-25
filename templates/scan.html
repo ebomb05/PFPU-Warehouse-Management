@@ -7,7 +7,7 @@
         <h2>Scan Station</h2>
 
         <p>
-            Scan a QR / Asset ID and choose an action.
+            Scan a QR / Asset ID and choose an available action.
         </p>
     </div>
 </header>
@@ -31,6 +31,7 @@
 
         <input
             name="barcode_value"
+            id="scan-input"
             autofocus
             required
             class="scanbox"
@@ -46,13 +47,25 @@
             required
         >
 
+            {% if request.state.can("assets.move") %}
+
             <option value="move">
                 Move Location
             </option>
 
+            {% endif %}
+
+
+            {% if request.state.can("repairs.update") %}
+
             <option value="repair">
                 Send to Repair
             </option>
+
+            {% endif %}
+
+
+            {% if request.state.can("scan.checkout") %}
 
             <option value="prep">
                 Job Pull → PREP
@@ -62,12 +75,25 @@
                 Check Out to Job
             </option>
 
+            {% endif %}
+
+
+            {% if request.state.can("scan.checkin") %}
+
             <option value="return">
                 Return / Check In
             </option>
 
+            {% endif %}
+
         </select>
 
+
+        {% if
+            request.state.can("scan.checkout")
+            or request.state.can("scan.checkin")
+            or request.state.can("repairs.update")
+        %}
 
         <label>Job</label>
 
@@ -90,6 +116,10 @@
 
         </select>
 
+        {% endif %}
+
+
+        {% if request.state.can("assets.move") %}
 
         <label>Destination Location</label>
 
@@ -103,13 +133,19 @@
 
             <option value="{{ location['id'] }}">
                 {{ location["code"] }}
-                — {{ location["name"] }}
+
+                {% if location["name"] %}
+                    — {{ location["name"] }}
+                {% endif %}
+
                 ({{ location["location_type"] }})
             </option>
 
             {% endfor %}
 
         </select>
+
+        {% endif %}
 
 
         <label>Notes / Repair Issue</label>
@@ -132,6 +168,11 @@
 </section>
 
 
+{% if
+    request.state.can("scan.checkout")
+    or request.state.can("scan.checkin")
+%}
+
 <section class="panel">
 
     <h3>Job Workflow Notice</h3>
@@ -143,5 +184,26 @@
     </p>
 
 </section>
+
+{% endif %}
+
+
+<script>
+
+    const scanInput =
+        document.getElementById("scan-input");
+
+    if (scanInput) {
+
+        window.addEventListener(
+            "load",
+            function () {
+                scanInput.focus();
+            }
+        );
+
+    }
+
+</script>
 
 {% endblock %}

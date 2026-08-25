@@ -86,7 +86,10 @@
 </section>
 
 
-{% if summary["audit"]["status"] == "Open" %}
+{% if
+    summary["audit"]["status"] == "Open"
+    and request.state.can("audits.perform")
+%}
 
 <section class="panel">
 
@@ -184,7 +187,9 @@
 
     {% else %}
 
-    <p>No expected assets are currently missing from the scan.</p>
+    <p>
+        No expected assets are currently missing from the scan.
+    </p>
 
     {% endif %}
 
@@ -249,7 +254,10 @@
 </section>
 
 
-{% if summary["audit"]["status"] == "Open" %}
+{% if
+    summary["audit"]["status"] == "Open"
+    and request.state.can("audits.perform")
+%}
 
 <section class="panel">
 
@@ -279,6 +287,8 @@
 {% endif %}
 
 
+{% if request.state.can("audits.perform") %}
+
 <script>
 
     const auditScan =
@@ -296,5 +306,7 @@
     }
 
 </script>
+
+{% endif %}
 
 {% endblock %}
