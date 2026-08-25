@@ -462,7 +462,7 @@ def add_job_line(
 def apply_job_pack(
     request: Request,
     job_id: int,
-    pack_id: int = Form(...),
+    job_pack_id: int = Form(...),
 ):
     if not request_has_permission(
         request,
@@ -777,113 +777,13 @@ def remove_vehicle_from_job(
         status_code=303,
     )
 
-@router.get("/jobs/{job_id}/pull", response_class=HTMLResponse)
-def job_pull_page(
-    request: Request,
-    job_id: int,
-    message: str = "",
-):
-
-    if not request_has_permission(
-        request,
-        "jobs.view",
-    ):
-        return deny_access()
-
-    con = connect()
-
-    job = con.execute(
-        """
-        SELECT
-            j.*,
-            COALESCE(c.name, j.customer) AS customer_name
-        FROM jobs j
-        LEFT JOIN customers c
-            ON c.id = j.customer_id
-        WHERE j.id = ?
-        """,
-        (job_id,),
-    ).fetchone()
-
-    if not job:
-        con.close()
-        return RedirectResponse(
-            "/jobs?message=Job not found",
-            status_code=303,
-        )
-
-    con.close()
-
-    pull_list = build_pull_list(job_id)
-
-    pull_list = build_pull_list(job_id)
-
-    total_needed = pull_list["total_required"]
-
-    con = connect()
-
-    total_pulled = con.execute(
-        """
-        SELECT COUNT(*)
-        FROM assets
-        WHERE assigned_job_id = ?
-          AND status = 'Reserved / Prep'
-        """,
-        (job_id,),
-    ).fetchone()[0]
-
-    con.close()
-
-    return request.app.state.templates.TemplateResponse(
-        "job_pull.html",
-        {
-            "request": request,
-            "job": job,
-            "pull_list": pull_list,
-            "total_needed": total_needed,
-            "total_pulled": total_pulled,
-            "message": message,
-        },
-    )
-
-
-@router.post("/jobs/{job_id}/pull")
-def job_pull_scan(
-    request: Request,
-    job_id: int,
-    barcode_value: str = Form(...),
-):
-    if not request_has_permission(
-        request,
-        "scan.checkout",
-    ):
-        return deny_access()
-
-    barcode_value = barcode_value.strip()
-
-    if not barcode_value:
-        return RedirectResponse(
-            f"/jobs/{job_id}/pull?message=Scan an asset barcode",
-            status_code=303,
-        )
-
-    result = pull_asset_to_prep(
-        job_id,
-        barcode_value,
-        notes="Job Pull scan",
-    )
-
-    return RedirectResponse(
-        f"/jobs/{job_id}/pull?message={quote(result['message'])}",
-        status_code=303,
-    )
-
 @router.get("/jobs/{job_id}/load", response_class=HTMLResponse)
 def job_load_page(
     request: Request,
     job_id: int,
     vehicle_id: int | None = None,
     message: str = "",
+    result: str = "",
 ):
 
     if not request_has_permission(
@@ -941,7 +841,8 @@ def job_load_page(
         con.close()
 
         return RedirectResponse(
-            f"/jobs/{job_id}?message=Assign a vehicle before loading equipment",
+            f"/jobs/{job_id}?message="
+            "Assign a vehicle before loading equipment",
             status_code=303,
         )
 
@@ -1022,6 +923,7 @@ def job_load_page(
             "total_pulled": total_pulled,
             "total_loaded": total_loaded,
             "message": message,
+            "result": result,
         },
     )
 
@@ -1039,21 +941,42 @@ def job_load_scan(
     ):
         return deny_access()
 
-    result = load_asset_to_vehicle(
+    barcode_value = barcode_value.strip()
+
+    if not barcode_value:
+        return RedirectResponse(
+            (
+                f"/jobs/{job_id}/load"
+                f"?vehicle_id={vehicle_id}"
+                "&result=error&message="
+                + quote("Scan an asset QR / Asset ID.")
+            ),
+            status_code=303,
+        )
+
+    load_result = load_asset_to_vehicle(
         job_id,
         vehicle_id,
         barcode_value,
         notes="Vehicle Load scan",
     )
 
+    result_type = (
+        "success"
+        if load_result["success"]
+        else "error"
+    )
+
     return RedirectResponse(
         (
             f"/jobs/{job_id}/load"
             f"?vehicle_id={vehicle_id}"
-            f"&message={quote(result['message'])}"
+            f"&result={result_type}"
+            f"&message={quote(load_result['message'])}"
         ),
         status_code=303,
     )
+
 
 @router.get("/jobs/{job_id}/dispatch", response_class=HTMLResponse)
 def job_dispatch_page(
@@ -1061,6 +984,7 @@ def job_dispatch_page(
     job_id: int,
     vehicle_id: int | None = None,
     message: str = "",
+    result: str = "",
 ):
 
     if not request_has_permission(
@@ -1218,18 +1142,38 @@ def job_dispatch_scan(
     ):
         return deny_access()
 
-    result = dispatch_asset_to_job_site(
+    barcode_value = barcode_value.strip()
+
+    if not barcode_value:
+        return RedirectResponse(
+            (
+                f"/jobs/{job_id}/dispatch"
+                f"?vehicle_id={vehicle_id}"
+                "&result=error&message="
+                + quote("Scan an asset QR / Asset ID.")
+            ),
+            status_code=303,
+        )
+
+    dispatch_result = dispatch_asset_to_job_site(
         job_id,
         vehicle_id,
         barcode_value,
         notes="Job Dispatch scan",
     )
 
+    result_type = (
+        "success"
+        if dispatch_result["success"]
+        else "error"
+    )
+
     return RedirectResponse(
         (
             f"/jobs/{job_id}/dispatch"
             f"?vehicle_id={vehicle_id}"
-            f"&message={quote(result['message'])}"
+            f"&result={result_type}"
+            f"&message={quote(dispatch_result['message'])}"
         ),
         status_code=303,
     )
@@ -1239,6 +1183,7 @@ def job_return_page(
     request: Request,
     job_id: int,
     message: str = "",
+    result: str = "",
 ):
 
     if not request_has_permission(
@@ -1344,6 +1289,7 @@ def job_return_page(
     returned_infos = []
 
     for asset in returned_assets:
+
         recommendation = find_next_job_for_item(
             current_job_id=job_id,
             item_master_id=asset["item_master_id"],
@@ -1366,8 +1312,10 @@ def job_return_page(
             "total_expected": total_expected,
             "total_returned": total_returned,
             "message": message,
+            "result": result,
         },
     )
+
 
 @router.post("/jobs/{job_id}/return")
 def job_return_scan(
@@ -1375,25 +1323,46 @@ def job_return_scan(
     job_id: int,
     barcode_value: str = Form(...),
 ):
+
     if not request_has_permission(
         request,
         "scan.checkin",
     ):
         return deny_access()
 
-    result = return_asset_to_prep(
+    barcode_value = barcode_value.strip()
+
+    if not barcode_value:
+        return RedirectResponse(
+            (
+                f"/jobs/{job_id}/return"
+                "?result=error&message="
+                + quote("Scan an asset QR / Asset ID.")
+            ),
+            status_code=303,
+        )
+
+    return_result = return_asset_to_prep(
         job_id,
         barcode_value,
         notes="Job Return scan",
     )
 
+    result_type = (
+        "success"
+        if return_result["success"]
+        else "error"
+    )
+
     return RedirectResponse(
         (
             f"/jobs/{job_id}/return"
-            f"?message={quote(result['message'])}"
+            f"?result={result_type}"
+            f"&message={quote(return_result['message'])}"
         ),
         status_code=303,
     )
+
 
 @router.post("/jobs/{job_id}/return/inspect")
 def job_return_inspect(
@@ -1403,23 +1372,31 @@ def job_return_inspect(
     action: str = Form(...),
     notes: str = Form(""),
 ):
+
     if not request_has_permission(
         request,
         "scan.checkin",
     ):
         return deny_access()
 
-    result = route_returned_asset(
+    inspection_result = route_returned_asset(
         job_id=job_id,
         barcode_value=barcode_value,
         action=action,
         notes=notes,
     )
 
+    result_type = (
+        "success"
+        if inspection_result["success"]
+        else "error"
+    )
+
     return RedirectResponse(
         (
             f"/jobs/{job_id}/return"
-            f"?message={quote(result['message'])}"
+            f"?result={result_type}"
+            f"&message={quote(inspection_result['message'])}"
         ),
         status_code=303,
     )

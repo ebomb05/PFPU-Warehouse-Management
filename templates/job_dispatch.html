@@ -9,7 +9,7 @@
 
         <h3>
             {{ job["job_number"] }}
-            — {{ job["customer_name"] }}
+            &mdash; {{ job["customer_name"] }}
         </h3>
 
         <p>
@@ -23,7 +23,7 @@
 
     <div>
         <a href="/jobs/{{ job['id'] }}">
-            ← Back to Job
+            &larr; Back to Job
         </a>
     </div>
 
@@ -31,9 +31,36 @@
 
 
 {% if message %}
-<section class="panel">
-    <strong>{{ message }}</strong>
+
+<section
+    class="
+        scan-feedback
+        {% if result == 'success' %}
+            success
+        {% elif result == 'error' %}
+            error
+        {% else %}
+            info
+        {% endif %}
+    "
+>
+
+    <div class="scan-feedback-icon">
+        {% if result == "success" %}
+            &#10003;
+        {% elif result == "error" %}
+            &#9888;
+        {% else %}
+            &#8505;
+        {% endif %}
+    </div>
+
+    <div class="scan-feedback-message">
+        {{ message }}
+    </div>
+
 </section>
+
 {% endif %}
 
 
@@ -62,7 +89,7 @@
                 {% endif %}
             >
                 {{ vehicle["name"] }}
-                — {{ vehicle["location_code"] }}
+                &mdash; {{ vehicle["location_code"] }}
             </option>
 
         {% endfor %}
@@ -90,7 +117,9 @@
 
     {% if total_dispatchable > 0 %}
 
-        {% set percent = ((total_dispatched / total_dispatchable) * 100) | int %}
+        {% set percent =
+            ((total_dispatched / total_dispatchable) * 100) | int
+        %}
 
         <div style="
             width: 100%;
@@ -122,7 +151,7 @@
 
     <p>
         Scan equipment currently loaded on
-        {{ selected_vehicle["name"] }}.
+        <strong>{{ selected_vehicle["name"] }}</strong>.
     </p>
 
     <form
@@ -140,6 +169,7 @@
             type="text"
             name="barcode_value"
             id="barcode-input"
+            class="scanbox"
             placeholder="Scan QR / Asset ID"
             autocomplete="off"
             autofocus
@@ -147,8 +177,6 @@
             style="
                 width: 100%;
                 box-sizing: border-box;
-                font-size: 1.6rem;
-                padding: 16px;
                 margin-bottom: 12px;
             "
         >
@@ -191,7 +219,9 @@
             <tr>
 
                 <td>
-                    <strong>{{ asset["asset_id"] }}</strong>
+                    <strong>
+                        {{ asset["asset_id"] }}
+                    </strong>
                 </td>
 
                 <td>
@@ -244,7 +274,9 @@
             <tr>
 
                 <td>
-                    <strong>{{ asset["asset_id"] }}</strong>
+                    <strong>
+                        {{ asset["asset_id"] }}
+                    </strong>
                 </td>
 
                 <td>
@@ -272,28 +304,5 @@
     {% endif %}
 
 </section>
-
-
-{% if request.state.can("scan.checkout") %}
-
-<script>
-
-    const barcodeInput =
-        document.getElementById("barcode-input");
-
-    if (barcodeInput) {
-
-        window.addEventListener(
-            "load",
-            function () {
-                barcodeInput.focus();
-            }
-        );
-
-    }
-
-</script>
-
-{% endif %}
 
 {% endblock %}

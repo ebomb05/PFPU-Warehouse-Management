@@ -8,7 +8,7 @@
 
         <h3>
             {{ job["job_number"] }}
-            — {{ job["customer_name"] }}
+            &mdash; {{ job["customer_name"] }}
         </h3>
 
         <p>
@@ -30,16 +30,43 @@
 
     <div>
         <a href="/jobs/{{ job['id'] }}">
-            ← Back to Job
+            &larr; Back to Job
         </a>
     </div>
 </header>
 
 
 {% if message %}
-<section class="panel">
-    <strong>{{ message }}</strong>
+
+<section
+    class="
+        scan-feedback
+        {% if result == 'success' %}
+            success
+        {% elif result == 'error' %}
+            error
+        {% else %}
+            info
+        {% endif %}
+    "
+>
+
+    <div class="scan-feedback-icon">
+        {% if result == "success" %}
+            &#10003;
+        {% elif result == "error" %}
+            &#9888;
+        {% else %}
+            &#8505;
+        {% endif %}
+    </div>
+
+    <div class="scan-feedback-message">
+        {{ message }}
+    </div>
+
 </section>
+
 {% endif %}
 
 
@@ -87,7 +114,7 @@
     <h3>Scan Equipment</h3>
 
     <p>
-        Scan an asset barcode or asset ID.
+        Scan an asset QR or Asset ID.
         A valid item will be assigned to this job and moved to PREP.
     </p>
 
@@ -96,19 +123,20 @@
         action="/jobs/{{ job['id'] }}/pull"
     >
 
+        <label>QR / Asset ID</label>
+
         <input
             type="text"
             name="barcode_value"
             id="barcode-input"
-            placeholder="Scan barcode / asset ID"
+            class="scanbox"
+            placeholder="Scan QR / Asset ID"
             autocomplete="off"
             autofocus
             required
             style="
                 width: 100%;
                 box-sizing: border-box;
-                font-size: 1.6rem;
-                padding: 16px;
                 margin-bottom: 12px;
             "
         >
@@ -156,7 +184,7 @@
             {{ group["location_code"] }}
 
             {% if group["location_name"] %}
-                — {{ group["location_name"] }}
+                &mdash; {{ group["location_name"] }}
             {% endif %}
         </h4>
 
@@ -217,7 +245,7 @@
     <section class="panel">
 
         <h4>
-            ⚠ LOCATION NOT ASSIGNED
+            &#9888; LOCATION NOT ASSIGNED
         </h4>
 
         <table>
@@ -263,20 +291,5 @@
     {% endif %}
 
 </section>
-
-
-{% if request.state.can("scan.checkout") %}
-
-<script>
-    const barcodeInput = document.getElementById("barcode-input");
-
-    if (barcodeInput) {
-        window.addEventListener("load", function () {
-            barcodeInput.focus();
-        });
-    }
-</script>
-
-{% endif %}
 
 {% endblock %}

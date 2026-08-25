@@ -9,7 +9,7 @@
 
         <h3>
             {{ job["job_number"] }}
-            — {{ job["customer_name"] }}
+            &mdash; {{ job["customer_name"] }}
         </h3>
 
         <p>
@@ -23,7 +23,7 @@
 
     <div>
         <a href="/jobs/{{ job['id'] }}">
-            ← Back to Job
+            &larr; Back to Job
         </a>
     </div>
 
@@ -31,9 +31,38 @@
 
 
 {% if message %}
-<section class="panel">
-    <strong>{{ message }}</strong>
+
+<section
+    class="
+        scan-feedback
+        {% if result == 'success' %}
+            success
+        {% elif result == 'error' %}
+            error
+        {% else %}
+            info
+        {% endif %}
+    "
+>
+
+    <div class="scan-feedback-icon">
+
+        {% if result == "success" %}
+            &#10003;
+        {% elif result == "error" %}
+            &#9888;
+        {% else %}
+            &#8505;
+        {% endif %}
+
+    </div>
+
+    <div class="scan-feedback-message">
+        {{ message }}
+    </div>
+
 </section>
+
 {% endif %}
 
 
@@ -53,7 +82,9 @@
 
     {% if total_expected > 0 %}
 
-        {% set percent = ((total_returned / total_expected) * 100) | int %}
+        {% set percent =
+            ((total_returned / total_expected) * 100) | int
+        %}
 
         <div style="
             width: 100%;
@@ -98,6 +129,7 @@
             type="text"
             name="barcode_value"
             id="barcode-input"
+            class="scanbox"
             placeholder="Scan QR / Asset ID"
             autocomplete="off"
             autofocus
@@ -105,8 +137,6 @@
             style="
                 width: 100%;
                 box-sizing: border-box;
-                font-size: 1.6rem;
-                padding: 16px;
                 margin-bottom: 12px;
             "
         >
@@ -149,7 +179,9 @@
             <tr>
 
                 <td>
-                    <strong>{{ asset["asset_id"] }}</strong>
+                    <strong>
+                        {{ asset["asset_id"] }}
+                    </strong>
                 </td>
 
                 <td>
@@ -191,7 +223,7 @@
 
             <h4>
                 {{ info.asset["asset_id"] }}
-                — {{ info.asset["description"] }}
+                &mdash; {{ info.asset["description"] }}
             </h4>
 
             <p>
@@ -207,19 +239,24 @@
 
                     {{ info.recommendation["next_job"]["job_number"] }}
 
-                    —
+                    &mdash;
 
                     {{ info.recommendation["gap_days"] }} day(s)
                     after this job returns.
                 </p>
 
+
                 {% if info.recommendation["recommended"] %}
 
-                    <p>
+                    <div class="notice">
                         <strong>
                             Recommended: Keep this item in PREP.
                         </strong>
-                    </p>
+
+                        It is needed again within the normal
+                        {{ info.recommendation["prep_window_days"] }}-day
+                        PREP window.
+                    </div>
 
                 {% else %}
 
@@ -230,6 +267,7 @@
                     </p>
 
                 {% endif %}
+
 
             {% else %}
 
@@ -304,6 +342,7 @@
 
         {% endfor %}
 
+
     {% else %}
 
     <p>
@@ -314,8 +353,6 @@
 
 </section>
 
-
-{% if request.state.can("scan.checkin") %}
 
 <script>
 
@@ -334,7 +371,5 @@
     }
 
 </script>
-
-{% endif %}
 
 {% endblock %}
