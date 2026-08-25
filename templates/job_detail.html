@@ -259,7 +259,12 @@
         class="rowform"
     >
 
-        <select name="item_master_id" required>
+        <select
+            name="item_master_id"
+            required
+            data-searchable="true"
+            data-search-placeholder="Search equipment..."
+        >
 
             {% for item in items %}
 

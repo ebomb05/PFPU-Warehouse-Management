@@ -43,7 +43,12 @@
         class="rowform"
     >
 
-        <select name="item_master_id" required>
+        <select
+            name="item_master_id"
+            required
+            data-searchable="true"
+            data-search-placeholder="Search equipment..."
+        >
 
             {% for item in items %}
 
@@ -67,7 +72,12 @@
         >
 
 
-        <select name="location_id" required>
+        <select
+            name="location_id"
+            required
+            data-searchable="true"
+            data-search-placeholder="Search locations..."
+        >
 
             {% for location in locations %}
 
@@ -171,7 +181,12 @@
                         action="/assets/{{ asset['id'] }}/move"
                     >
 
-                        <select name="location_id" required>
+                        <select
+                            name="location_id"
+                            required
+                            data-searchable="true"
+                            data-search-placeholder="Search locations..."
+                        >
 
                             {% for location in locations %}
 

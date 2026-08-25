@@ -156,5 +156,106 @@
 
 </main>
 
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const searchableSelects =
+        document.querySelectorAll(
+            'select[data-searchable="true"]'
+        );
+
+    searchableSelects.forEach(function (select) {
+
+        const originalOptions =
+            Array.from(select.options).map(function (option) {
+                return {
+                    value: option.value,
+                    text: option.text,
+                    selected: option.selected
+                };
+            });
+
+        const searchInput =
+            document.createElement("input");
+
+        searchInput.type = "search";
+        searchInput.className = "select-search";
+        searchInput.placeholder =
+            select.dataset.searchPlaceholder
+            || "Type to search...";
+
+        select.parentNode.insertBefore(
+            searchInput,
+            select
+        );
+
+        function rebuildOptions(searchText) {
+
+            const currentValue = select.value;
+
+            const query =
+                searchText
+                    .trim()
+                    .toLowerCase();
+
+            select.innerHTML = "";
+
+            const matches =
+                originalOptions.filter(function (option) {
+
+                    if (!query) {
+                        return true;
+                    }
+
+                    return option.text
+                        .toLowerCase()
+                        .includes(query);
+                });
+
+            matches.forEach(function (optionData) {
+
+                const option =
+                    document.createElement("option");
+
+                option.value = optionData.value;
+                option.textContent = optionData.text;
+
+                if (
+                    optionData.value === currentValue
+                    || (
+                        !currentValue
+                        && optionData.selected
+                    )
+                ) {
+                    option.selected = true;
+                }
+
+                select.appendChild(option);
+            });
+
+            if (
+                matches.length > 0
+                && !Array.from(select.options)
+                    .some(function (option) {
+                        return option.value === currentValue;
+                    })
+            ) {
+                select.selectedIndex = 0;
+            }
+        }
+
+        searchInput.addEventListener(
+            "input",
+            function () {
+                rebuildOptions(
+                    searchInput.value
+                );
+            }
+        );
+    });
+});
+</script>
+
 </body>
 </html>

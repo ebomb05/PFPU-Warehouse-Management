@@ -33,7 +33,12 @@
             <div>
                 <label>Customer</label>
 
-                <select name="customer_id" required>
+                <select
+                    name="customer_id"
+                    required
+                    data-searchable="true"
+                    data-search-placeholder="Search customers..."
+                >
 
                     {% for customer in customers %}
 

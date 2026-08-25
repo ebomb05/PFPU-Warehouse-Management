@@ -97,7 +97,12 @@
 
         <label>Job</label>
 
-        <select name="job_id">
+        <select
+            name="customer_id"
+            required
+            data-searchable="true"
+            data-search-placeholder="Search customers..."
+        >
 
             <option value="">
                 No job
@@ -123,7 +128,11 @@
 
         <label>Destination Location</label>
 
-        <select name="to_location_id">
+        <select
+            name="to_location_id"
+            data-searchable="true"
+            data-search-placeholder="Search locations..."
+        >
 
             <option value="">
                 Select destination
