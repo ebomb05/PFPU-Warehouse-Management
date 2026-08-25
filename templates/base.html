@@ -6,7 +6,7 @@
 
     <title>PFPU Warehouse Manager</title>
 
-    <link rel="stylesheet" href="/static/style.css?v=6.2d">
+    <link rel="stylesheet" href="/static/style.css?v=6.2e">
 </head>
 
 <body>
@@ -208,24 +208,44 @@
 
     <div class="top-user-bar">
 
+        <div class="top-app-title">
+            <strong>PFPU Warehouse Manager</strong>
+            <span>Warehouse Operations</span>
+        </div>
+
         {% if request.session.get("user_id") %}
 
-            <span>
-                Signed in as
-                <strong>
-                    {{ request.session.get("display_name") }}
-                </strong>
-            </span>
+            <div class="top-user-controls">
 
-            <form
-                method="post"
-                action="/logout"
-                style="margin: 0;"
-            >
-                <button type="submit">
-                    Logout
-                </button>
-            </form>
+                <div class="user-badge">
+
+                    <div class="user-avatar">
+                        {{ request.session.get("display_name", "U")[0] | upper }}
+                    </div>
+
+                    <div class="user-info">
+                        <small>Signed in as</small>
+                        <strong>
+                            {{ request.session.get("display_name") }}
+                        </strong>
+                    </div>
+
+                </div>
+
+                <form
+                    method="post"
+                    action="/logout"
+                    style="margin: 0;"
+                >
+                    <button
+                        type="submit"
+                        class="logout-button"
+                    >
+                        Logout
+                    </button>
+                </form>
+
+            </div>
 
         {% else %}
 
