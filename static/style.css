@@ -241,3 +241,130 @@
 
 }
 
+
+/* =========================================================
+   PFPU SIDEBAR NAVIGATION
+   Phase 6.2D
+   ========================================================= */
+
+.sidebar-brand {
+    margin-bottom: 22px;
+}
+
+.sidebar-brand h1 {
+    margin: 0;
+    letter-spacing: 2px;
+}
+
+.sidebar-brand small {
+    display: block;
+    margin-top: 4px;
+    color: #9ca3af;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.sidebar-nav .nav-button {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+
+    min-height: 46px;
+
+    margin: 0;
+    padding: 11px 12px;
+
+    color: #e5e7eb;
+    text-decoration: none;
+
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 10px;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.sidebar-nav .nav-button:hover {
+    background: #2f4779;
+    border-color: #6079ab;
+    transform: translateX(2px);
+}
+
+.sidebar-nav .nav-button.active {
+    background: #36558f;
+    border-color: #9ab0de;
+    color: white;
+    box-shadow:
+        inset 4px 0 0 #ffffff,
+        0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.nav-icon {
+    width: 22px;
+    flex: 0 0 22px;
+    text-align: center;
+    font-size: 17px;
+}
+
+.top-user-bar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+
+@media (max-width: 800px) {
+
+    .sidebar-brand {
+        margin-bottom: 12px;
+    }
+
+    .sidebar-nav {
+        display: grid;
+        grid-template-columns:
+            repeat(3, minmax(130px, 1fr));
+        gap: 7px;
+    }
+
+    .sidebar-nav .nav-button {
+        min-height: 48px;
+        padding: 10px;
+    }
+
+    .sidebar-nav .nav-button:hover {
+        transform: none;
+    }
+
+}
+
+
+@media (max-width: 600px) {
+
+    .sidebar-nav {
+        grid-template-columns:
+            repeat(2, minmax(120px, 1fr));
+    }
+
+}
+
+
+@media (max-width: 400px) {
+
+    .sidebar-nav {
+        grid-template-columns: 1fr;
+    }
+
+}
+

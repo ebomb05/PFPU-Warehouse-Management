@@ -224,24 +224,127 @@
 
 
 <script>
+document.addEventListener("DOMContentLoaded", function () {
 
     const scanInput =
         document.getElementById("scan-input");
 
-    if (scanInput) {
+    const actionSelect =
+        document.querySelector(
+            'select[name="action"]'
+        );
 
-        window.addEventListener(
-            "load",
+    const jobSelect =
+        document.querySelector(
+            'select[name="job_id"]'
+        );
+
+    const locationSelect =
+        document.querySelector(
+            'select[name="to_location_id"]'
+        );
+
+
+    // -----------------------------------------------------
+    // RESTORE PREVIOUS SCAN STATION SETTINGS
+    // -----------------------------------------------------
+
+    function restoreSelect(
+        select,
+        storageKey
+    ) {
+        if (!select) {
+            return;
+        }
+
+        const savedValue =
+            sessionStorage.getItem(storageKey);
+
+        if (!savedValue) {
+            return;
+        }
+
+        const optionExists =
+            Array.from(select.options).some(
+                function (option) {
+                    return option.value === savedValue;
+                }
+            );
+
+        if (optionExists) {
+            select.value = savedValue;
+        }
+    }
+
+
+    restoreSelect(
+        actionSelect,
+        "pfpu_scan_action"
+    );
+
+    restoreSelect(
+        jobSelect,
+        "pfpu_scan_job"
+    );
+
+    restoreSelect(
+        locationSelect,
+        "pfpu_scan_location"
+    );
+
+
+    // -----------------------------------------------------
+    // REMEMBER SETTINGS WHEN THE WORKER CHANGES THEM
+    // -----------------------------------------------------
+
+    function rememberSelect(
+        select,
+        storageKey
+    ) {
+        if (!select) {
+            return;
+        }
+
+        select.addEventListener(
+            "change",
             function () {
-
-                scanInput.value = "";
-                scanInput.focus();
-
+                sessionStorage.setItem(
+                    storageKey,
+                    select.value
+                );
             }
         );
+    }
+
+
+    rememberSelect(
+        actionSelect,
+        "pfpu_scan_action"
+    );
+
+    rememberSelect(
+        jobSelect,
+        "pfpu_scan_job"
+    );
+
+    rememberSelect(
+        locationSelect,
+        "pfpu_scan_location"
+    );
+
+
+    // -----------------------------------------------------
+    // PREPARE FOR NEXT SCAN
+    // -----------------------------------------------------
+
+    if (scanInput) {
+
+        scanInput.value = "";
+        scanInput.focus();
 
     }
 
+});
 </script>
 
 {% endblock %}

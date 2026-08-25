@@ -6,38 +6,66 @@
 
     <title>PFPU Warehouse Manager</title>
 
-    <link rel="stylesheet" href="/static/style.css?v=6.2b">
+    <link rel="stylesheet" href="/static/style.css?v=6.2d">
 </head>
 
 <body>
 
 <aside>
 
-    <h1>PFPU</h1>
+    <div class="sidebar-brand">
+        <h1>PFPU</h1>
+        <small>Warehouse Manager</small>
+    </div>
 
     {% if request.session.get("user_id") %}
 
         {% set perms = request.state.permissions %}
+        {% set path = request.url.path %}
 
-        <nav>
+        <nav class="sidebar-nav">
 
             {% if "dashboard.view" in perms %}
-            <a href="/">Dashboard</a>
+            <a
+                href="/"
+                class="nav-button {% if path == '/' %}active{% endif %}"
+            >
+                <span class="nav-icon">&#8962;</span>
+                <span>Dashboard</span>
+            </a>
             {% endif %}
 
 
             {% if "inventory.view" in perms %}
-            <a href="/inventory">Inventory</a>
+            <a
+                href="/inventory"
+                class="nav-button {% if path.startswith('/inventory') %}active{% endif %}"
+            >
+                <span class="nav-icon">&#9638;</span>
+                <span>Inventory</span>
+            </a>
             {% endif %}
 
 
             {% if "customers.view" in perms %}
-            <a href="/customers">Customers</a>
+            <a
+                href="/customers"
+                class="nav-button {% if path.startswith('/customers') %}active{% endif %}"
+            >
+                <span class="nav-icon">&#9679;</span>
+                <span>Customers</span>
+            </a>
             {% endif %}
 
 
             {% if "vehicles.view" in perms %}
-            <a href="/vehicles">Vehicles</a>
+            <a
+                href="/vehicles"
+                class="nav-button {% if path.startswith('/vehicles') %}active{% endif %}"
+            >
+                <span class="nav-icon">&#9654;</span>
+                <span>Vehicles</span>
+            </a>
             {% endif %}
 
 
@@ -46,18 +74,43 @@
                 or "assets.create" in perms
                 or "assets.move" in perms
             %}
-            <a href="/assets">Assets</a>
+            <a
+                href="/assets"
+                class="nav-button {% if path.startswith('/assets') %}active{% endif %}"
+            >
+                <span class="nav-icon">&#9635;</span>
+                <span>Assets</span>
+            </a>
             {% endif %}
 
 
             {% if "locations.view" in perms %}
-            <a href="/locations">Locations</a>
+            <a
+                href="/locations"
+                class="nav-button {% if path.startswith('/locations') %}active{% endif %}"
+            >
+                <span class="nav-icon">&#9670;</span>
+                <span>Locations</span>
+            </a>
             {% endif %}
 
 
             {% if "jobs.view" in perms %}
-            <a href="/job-packs">Job Packs</a>
-            <a href="/jobs">Jobs</a>
+            <a
+                href="/job-packs"
+                class="nav-button {% if path.startswith('/job-packs') %}active{% endif %}"
+            >
+                <span class="nav-icon">&#9636;</span>
+                <span>Job Packs</span>
+            </a>
+
+            <a
+                href="/jobs"
+                class="nav-button {% if path.startswith('/jobs') %}active{% endif %}"
+            >
+                <span class="nav-icon">&#10003;</span>
+                <span>Jobs</span>
+            </a>
             {% endif %}
 
 
@@ -66,17 +119,35 @@
                 or "scan.checkout" in perms
                 or "scan.checkin" in perms
             %}
-            <a href="/scan">Scan Station</a>
+            <a
+                href="/scan"
+                class="nav-button {% if path.startswith('/scan') %}active{% endif %}"
+            >
+                <span class="nav-icon">&#9634;</span>
+                <span>Scan Station</span>
+            </a>
             {% endif %}
 
 
             {% if "repairs.view" in perms %}
-            <a href="/repairs">Repairs</a>
+            <a
+                href="/repairs"
+                class="nav-button {% if path.startswith('/repairs') %}active{% endif %}"
+            >
+                <span class="nav-icon">&#9881;</span>
+                <span>Repairs</span>
+            </a>
             {% endif %}
 
 
             {% if "audits.perform" in perms %}
-            <a href="/audits">Audits</a>
+            <a
+                href="/audits"
+                class="nav-button {% if path.startswith('/audits') %}active{% endif %}"
+            >
+                <span class="nav-icon">&#9745;</span>
+                <span>Audits</span>
+            </a>
             {% endif %}
 
 
@@ -84,22 +155,46 @@
                 "assets.create" in perms
                 or "inventory.edit" in perms
             %}
-            <a href="/barcodes">Barcodes</a>
+            <a
+                href="/barcodes"
+                class="nav-button {% if path.startswith('/barcodes') %}active{% endif %}"
+            >
+                <span class="nav-icon">&#9638;</span>
+                <span>Barcodes</span>
+            </a>
             {% endif %}
 
 
             {% if "users.manage" in perms %}
-            <a href="/users">Users</a>
+            <a
+                href="/users"
+                class="nav-button {% if path.startswith('/users') %}active{% endif %}"
+            >
+                <span class="nav-icon">&#9673;</span>
+                <span>Users</span>
+            </a>
             {% endif %}
 
 
             {% if "positions.manage" in perms %}
-            <a href="/positions">Positions</a>
+            <a
+                href="/positions"
+                class="nav-button {% if path.startswith('/positions') %}active{% endif %}"
+            >
+                <span class="nav-icon">&#9733;</span>
+                <span>Positions</span>
+            </a>
             {% endif %}
 
 
             {% if "system.export" in perms %}
-            <a href="/export">Export Excel</a>
+            <a
+                href="/export"
+                class="nav-button {% if path.startswith('/export') %}active{% endif %}"
+            >
+                <span class="nav-icon">&#8681;</span>
+                <span>Export Excel</span>
+            </a>
             {% endif %}
 
         </nav>
@@ -111,15 +206,7 @@
 
 <main>
 
-    <div
-        style="
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 16px;
-        "
-    >
+    <div class="top-user-bar">
 
         {% if request.session.get("user_id") %}
 
@@ -257,6 +344,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
@@ -269,43 +357,26 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
     }
 
-    /*
-     * Make scanner-heavy pages immediately ready.
-     */
     scanInput.focus();
-
-    /*
-     * If the field still contains anything after a browser
-     * restore/back action, selecting it means the next scan
-     * replaces the old value instead of appending to it.
-     */
     scanInput.select();
 
-
-    /*
-     * Add a visible Scanner Ready indicator above the field.
-     */
     const readyIndicator =
         document.createElement("div");
 
     readyIndicator.className = "scan-ready";
-    readyIndicator.textContent = "● Scanner Ready";
+    readyIndicator.textContent =
+        "\u25CF Scanner Ready";
 
     scanInput.parentNode.insertBefore(
         readyIndicator,
         scanInput
     );
 
-
-    /*
-     * Update the indicator when focus moves in/out of the
-     * scanner field.
-     */
     scanInput.addEventListener(
         "focus",
         function () {
             readyIndicator.textContent =
-                "● Scanner Ready";
+                "\u25CF Scanner Ready";
         }
     );
 
@@ -313,15 +384,10 @@ document.addEventListener("DOMContentLoaded", function () {
         "blur",
         function () {
             readyIndicator.textContent =
-                "Scanner Paused — tap scan field to resume";
+                "Scanner Paused \u2014 tap scan field to resume";
         }
     );
 
-
-    /*
-     * Prevent accidental double submission.
-     * Barcode scanners normally send ENTER after the code.
-     */
     const form = scanInput.closest("form");
 
     if (form) {
