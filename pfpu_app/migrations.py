@@ -1,7 +1,7 @@
 from datetime import datetime
 
 
-CURRENT_SCHEMA_VERSION = 8
+CURRENT_SCHEMA_VERSION = 10
 
 
 def run_migrations(con):
@@ -935,6 +935,144 @@ def run_migrations(con):
         )
 
         current_version = 9
+
+    con.commit()
+
+    # ---------------------------------------------------------
+    # Migration 10
+    # Performance indexes for long-term warehouse operation.
+    # ---------------------------------------------------------
+    if current_version < 10:
+        con.executescript(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_assets_item_master_id
+            ON assets(item_master_id);
+
+            CREATE INDEX IF NOT EXISTS
+            idx_assets_location_id
+            ON assets(location_id);
+
+            CREATE INDEX IF NOT EXISTS
+            idx_assets_status
+            ON assets(status);
+
+            CREATE INDEX IF NOT EXISTS
+            idx_assets_assigned_job_id
+            ON assets(assigned_job_id);
+
+            CREATE INDEX IF NOT EXISTS
+            idx_assets_job_location_status
+            ON assets(
+                assigned_job_id,
+                location_id,
+                status
+            );
+
+
+            CREATE INDEX IF NOT EXISTS
+            idx_jobs_status
+            ON jobs(status);
+
+            CREATE INDEX IF NOT EXISTS
+            idx_jobs_out_date
+            ON jobs(out_date);
+
+            CREATE INDEX IF NOT EXISTS
+            idx_jobs_return_date
+            ON jobs(return_date);
+
+            CREATE INDEX IF NOT EXISTS
+            idx_jobs_customer_id
+            ON jobs(customer_id);
+
+
+            CREATE INDEX IF NOT EXISTS
+            idx_job_lines_job_id
+            ON job_lines(job_id);
+
+            CREATE INDEX IF NOT EXISTS
+            idx_job_lines_item_master_id
+            ON job_lines(item_master_id);
+
+
+            CREATE INDEX IF NOT EXISTS
+            idx_reservations_job_id
+            ON reservations(job_id);
+
+            CREATE INDEX IF NOT EXISTS
+            idx_reservations_item_master_id
+            ON reservations(item_master_id);
+
+
+            CREATE INDEX IF NOT EXISTS
+            idx_asset_history_asset_id
+            ON asset_location_history(asset_id);
+
+            CREATE INDEX IF NOT EXISTS
+            idx_asset_history_job_id
+            ON asset_location_history(job_id);
+
+            CREATE INDEX IF NOT EXISTS
+            idx_asset_history_moved_at
+            ON asset_location_history(moved_at);
+
+
+            CREATE INDEX IF NOT EXISTS
+            idx_scan_log_barcode_value
+            ON scan_log(barcode_value);
+
+            CREATE INDEX IF NOT EXISTS
+            idx_scan_log_job_id
+            ON scan_log(job_id);
+
+            CREATE INDEX IF NOT EXISTS
+            idx_scan_log_scanned_at
+            ON scan_log(scanned_at);
+
+
+            CREATE INDEX IF NOT EXISTS
+            idx_repairs_asset_id
+            ON repair_records(asset_id);
+
+            CREATE INDEX IF NOT EXISTS
+            idx_repairs_status
+            ON repair_records(status);
+
+
+            CREATE INDEX IF NOT EXISTS
+            idx_exceptions_job_id
+            ON exceptions(job_id);
+
+            CREATE INDEX IF NOT EXISTS
+            idx_exceptions_asset_id
+            ON exceptions(asset_id);
+
+            CREATE INDEX IF NOT EXISTS
+            idx_exceptions_status
+            ON exceptions(status);
+            """
+        )
+
+        con.execute(
+            """
+            INSERT INTO schema_migrations(
+                version,
+                name,
+                applied_at
+            )
+            VALUES (?, ?, ?)
+            """,
+            (
+                10,
+                "Add warehouse performance indexes",
+                datetime.now().isoformat(
+                    timespec="seconds"
+                ),
+            ),
+        )
+
+        current_version = 10
 
     con.commit()
 
