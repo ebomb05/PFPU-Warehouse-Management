@@ -749,3 +749,127 @@
 }
 
 '@ | Add-Content static\style.css
+
+@'
+
+/* =========================================================
+   PFPU RECENT WAREHOUSE ACTIVITY
+   Phase 6.3C
+   ========================================================= */
+
+.activity-feed {
+    display: flex;
+    flex-direction: column;
+}
+
+.activity-row {
+    display: grid;
+    grid-template-columns: 42px 1fr auto;
+    gap: 12px;
+
+    align-items: center;
+
+    padding: 13px 6px;
+
+    border-bottom: 1px solid var(--line);
+}
+
+.activity-row:last-child {
+    border-bottom: 0;
+}
+
+.activity-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 36px;
+    height: 36px;
+
+    border-radius: 10px;
+
+    background: #eef2ff;
+    color: var(--accent);
+
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.activity-main {
+    min-width: 0;
+}
+
+.activity-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+
+    margin-bottom: 5px;
+}
+
+.activity-title strong {
+    font-size: 15px;
+}
+
+.activity-title span {
+    color: var(--muted);
+}
+
+.activity-route {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+
+    margin-bottom: 7px;
+}
+
+.activity-location {
+    font-weight: 600;
+}
+
+.activity-arrow {
+    color: var(--muted);
+}
+
+.activity-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.activity-job {
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.activity-notes {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.activity-time {
+    color: var(--muted);
+    font-size: 12px;
+    white-space: nowrap;
+    text-align: right;
+}
+
+
+@media (max-width: 700px) {
+
+    .activity-row {
+        grid-template-columns: 38px 1fr;
+    }
+
+    .activity-time {
+        grid-column: 2;
+        text-align: left;
+        margin-top: -4px;
+    }
+
+}
+
+'@ | Add-Content static\style.css

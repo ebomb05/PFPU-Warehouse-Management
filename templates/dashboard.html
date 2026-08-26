@@ -648,6 +648,139 @@
 
 </section>
 
+<section class="panel">
+
+    <div class="panel-heading-row">
+
+        <div>
+            <h3>Recent Warehouse Activity</h3>
+
+            <p class="muted-text">
+                Latest tracked equipment movements across the warehouse.
+            </p>
+        </div>
+
+    </div>
+
+
+    {% if recent_activity %}
+
+    <div class="activity-feed">
+
+        {% for activity in recent_activity %}
+
+        <div class="activity-row">
+
+            <div class="activity-icon">
+                &#8594;
+            </div>
+
+
+            <div class="activity-main">
+
+                <div class="activity-title">
+
+                    <strong>
+                        {{ activity["asset_code"] }}
+                    </strong>
+
+                    <span>
+                        {{ activity["description"] }}
+                    </span>
+
+                </div>
+
+
+                <div class="activity-route">
+
+                    {% if activity["from_code"] %}
+
+                        <span class="activity-location">
+                            {{ activity["from_code"] }}
+                        </span>
+
+                    {% else %}
+
+                        <span class="activity-location">
+                            New Asset
+                        </span>
+
+                    {% endif %}
+
+
+                    <span class="activity-arrow">
+                        &rarr;
+                    </span>
+
+
+                    {% if activity["to_code"] %}
+
+                        <span class="activity-location">
+                            {{ activity["to_code"] }}
+                        </span>
+
+                    {% else %}
+
+                        <span class="activity-location">
+                            Unknown
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+
+                <div class="activity-meta">
+
+                    <span class="pill">
+                        {{ activity["action"] }}
+                    </span>
+
+
+                    {% if activity["job_number"] %}
+
+                        <a
+                            href="/jobs/{{ activity['job_id'] }}"
+                            class="activity-job"
+                        >
+                            {{ activity["job_number"] }}
+                        </a>
+
+                    {% endif %}
+
+
+                    {% if activity["notes"] %}
+
+                        <span class="activity-notes">
+                            {{ activity["notes"] }}
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <div class="activity-time">
+                {{ activity["moved_at"] }}
+            </div>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+    {% else %}
+
+    <p>
+        No warehouse movement history has been recorded yet.
+    </p>
+
+    {% endif %}
+
+</section>
 
 {% if "repairs.view" in request.state.permissions %}
 

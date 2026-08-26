@@ -29,6 +29,7 @@ def dashboard(
 
     today_date = date.today()
     today = today_date.isoformat()
+
     soon_date = (
         today_date + timedelta(days=2)
     ).isoformat()
@@ -104,7 +105,7 @@ def dashboard(
     }
 
     # =====================================================
-    # UPCOMING JOBS
+    # UPCOMING / ACTIVE JOBS
     # =====================================================
 
     jobs = con.execute(
@@ -287,6 +288,7 @@ def dashboard(
                 conflict_count += 1
 
         if conflict_count > 0:
+
             conflict_jobs.append(
                 {
                     "id": job["id"],
@@ -294,6 +296,52 @@ def dashboard(
                     "conflict_count": conflict_count,
                 }
             )
+
+    # =====================================================
+    # RECENT WAREHOUSE ACTIVITY
+    # =====================================================
+
+    recent_activity = con.execute(
+        """
+        SELECT
+            h.id,
+            h.action,
+            h.notes,
+            h.moved_at,
+            h.job_id,
+
+            a.asset_id AS asset_code,
+            a.description,
+
+            from_location.code AS from_code,
+            from_location.name AS from_name,
+
+            to_location.code AS to_code,
+            to_location.name AS to_name,
+
+            j.job_number
+
+        FROM asset_location_history h
+
+        JOIN assets a
+            ON a.id = h.asset_id
+
+        LEFT JOIN warehouse_locations from_location
+            ON from_location.id = h.from_location_id
+
+        LEFT JOIN warehouse_locations to_location
+            ON to_location.id = h.to_location_id
+
+        LEFT JOIN jobs j
+            ON j.id = h.job_id
+
+        ORDER BY
+            h.moved_at DESC,
+            h.id DESC
+
+        LIMIT 15
+        """
+    ).fetchall()
 
     attention = {
         "conflicts": len(conflict_jobs),
@@ -319,5 +367,7 @@ def dashboard(
             "inspection_assets": inspection_assets,
             "repair_assets": repair_assets,
             "jobs_leaving_soon": jobs_leaving_soon,
+
+            "recent_activity": recent_activity,
         },
     )
