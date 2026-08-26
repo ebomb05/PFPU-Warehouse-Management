@@ -28,5 +28,9 @@ backups/
 *.tmp
 ~$*
 
+# PyInstaller build output
+build/
+dist/
+
 data/PFPU_inventory_export_*.xlsx
 .env
