@@ -668,3 +668,84 @@
 }
 
 '@ | Add-Content static\style.css
+
+@'
+
+/* =========================================================
+   PFPU NEEDS ATTENTION
+   Phase 6.3B
+   ========================================================= */
+
+.attention-summary {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(150px, 1fr));
+    gap: 12px;
+}
+
+.attention-card {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    padding: 15px;
+
+    background: #f8fafc;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+
+.attention-card span {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.attention-card strong {
+    font-size: 28px;
+}
+
+.attention-card small {
+    color: var(--muted);
+}
+
+.attention-card.attention-warning {
+    background: #fff8e7;
+    border-color: #e4c66d;
+}
+
+.attention-card.attention-danger {
+    background: var(--bad);
+    border-color: #dc8b8b;
+}
+
+.attention-card.attention-info {
+    background: #eef2ff;
+    border-color: #9ab0de;
+}
+
+.attention-panel {
+    border-left: 4px solid #d8a72d;
+}
+
+
+@media (max-width: 900px) {
+
+    .attention-summary {
+        grid-template-columns:
+            repeat(2, minmax(140px, 1fr));
+    }
+
+}
+
+
+@media (max-width: 480px) {
+
+    .attention-summary {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+'@ | Add-Content static\style.css

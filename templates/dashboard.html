@@ -31,10 +31,8 @@
 
 <section class="dashboard-stats">
 
-    <a
-        href="/jobs"
-        class="dashboard-stat-card"
-    >
+    <a href="/jobs" class="dashboard-stat-card">
+
         <span class="dashboard-stat-label">
             Jobs Today
         </span>
@@ -46,13 +44,12 @@
         <small>
             Scheduled out today
         </small>
+
     </a>
 
 
-    <a
-        href="/jobs"
-        class="dashboard-stat-card"
-    >
+    <a href="/jobs" class="dashboard-stat-card">
+
         <span class="dashboard-stat-label">
             Active Jobs
         </span>
@@ -64,13 +61,12 @@
         <small>
             Current job workload
         </small>
+
     </a>
 
 
-    <a
-        href="/jobs"
-        class="dashboard-stat-card"
-    >
+    <a href="/jobs" class="dashboard-stat-card">
+
         <span class="dashboard-stat-label">
             In PREP
         </span>
@@ -82,13 +78,12 @@
         <small>
             Reserved tracked assets
         </small>
+
     </a>
 
 
-    <a
-        href="/jobs"
-        class="dashboard-stat-card"
-    >
+    <a href="/jobs" class="dashboard-stat-card">
+
         <span class="dashboard-stat-label">
             At Job Site
         </span>
@@ -100,6 +95,7 @@
         <small>
             Checked-out assets
         </small>
+
     </a>
 
 
@@ -112,6 +108,7 @@
             {% endif %}
         "
     >
+
         <span class="dashboard-stat-label">
             Awaiting Inspection
         </span>
@@ -123,6 +120,7 @@
         <small>
             Returned to PREP
         </small>
+
     </a>
 
 
@@ -135,6 +133,7 @@
             {% endif %}
         "
     >
+
         <span class="dashboard-stat-label">
             Repair / Down
         </span>
@@ -146,9 +145,362 @@
         <small>
             Equipment needing attention
         </small>
+
     </a>
 
 </section>
+
+
+<section class="panel">
+
+    <div class="panel-heading-row">
+
+        <div>
+            <h3>Needs Attention</h3>
+
+            <p class="muted-text">
+                Warehouse items that may require action.
+            </p>
+        </div>
+
+    </div>
+
+
+    <section class="attention-summary">
+
+        <div
+            class="
+                attention-card
+                {% if attention['conflicts'] > 0 %}
+                    attention-warning
+                {% endif %}
+            "
+        >
+            <span>Inventory Conflicts</span>
+
+            <strong>
+                {{ attention["conflicts"] }}
+            </strong>
+
+            <small>
+                Jobs with equipment shortages
+            </small>
+        </div>
+
+
+        <div
+            class="
+                attention-card
+                {% if attention['inspection'] > 0 %}
+                    attention-warning
+                {% endif %}
+            "
+        >
+            <span>Awaiting Inspection</span>
+
+            <strong>
+                {{ attention["inspection"] }}
+            </strong>
+
+            <small>
+                Returned assets requiring review
+            </small>
+        </div>
+
+
+        <div
+            class="
+                attention-card
+                {% if attention['repair'] > 0 %}
+                    attention-danger
+                {% endif %}
+            "
+        >
+            <span>Repair / Down</span>
+
+            <strong>
+                {{ attention["repair"] }}
+            </strong>
+
+            <small>
+                Equipment unavailable for use
+            </small>
+        </div>
+
+
+        <div
+            class="
+                attention-card
+                {% if attention['leaving_soon'] > 0 %}
+                    attention-info
+                {% endif %}
+            "
+        >
+            <span>Leaving Soon</span>
+
+            <strong>
+                {{ attention["leaving_soon"] }}
+            </strong>
+
+            <small>
+                Jobs leaving within 2 days
+            </small>
+        </div>
+
+    </section>
+
+</section>
+
+
+{% if conflict_jobs %}
+
+<section class="panel attention-panel">
+
+    <h3>
+        &#9888; Inventory Conflicts
+    </h3>
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Job</th>
+                <th>Conflicting Items</th>
+                <th></th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for job in conflict_jobs %}
+
+            <tr>
+
+                <td>
+                    <strong>
+                        {{ job["job_number"] }}
+                    </strong>
+                </td>
+
+                <td>
+                    {{ job["conflict_count"] }}
+                </td>
+
+                <td>
+                    <a href="/jobs/{{ job['id'] }}">
+                        Review Job
+                    </a>
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</section>
+
+{% endif %}
+
+
+{% if inspection_assets %}
+
+<section class="panel attention-panel">
+
+    <h3>
+        Returned Equipment Awaiting Inspection
+    </h3>
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Asset</th>
+                <th>Description</th>
+                <th>Job</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for asset in inspection_assets %}
+
+            <tr>
+
+                <td>
+                    <strong>
+                        {{ asset["asset_id"] }}
+                    </strong>
+                </td>
+
+                <td>
+                    {{ asset["description"] }}
+                </td>
+
+                <td>
+
+                    {% if asset["assigned_job_id"] %}
+
+                        <a
+                            href="/jobs/{{ asset['assigned_job_id'] }}/return"
+                        >
+                            {{ asset["job_number"] or "Open Return" }}
+                        </a>
+
+                    {% else %}
+
+                        No job assigned
+
+                    {% endif %}
+
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</section>
+
+{% endif %}
+
+
+{% if repair_assets %}
+
+<section class="panel attention-panel">
+
+    <div class="panel-heading-row">
+
+        <div>
+            <h3>Repair / Down Equipment</h3>
+        </div>
+
+        {% if "repairs.view" in request.state.permissions %}
+
+        <a
+            href="/repairs"
+            class="panel-action-link"
+        >
+            Open Repairs &rarr;
+        </a>
+
+        {% endif %}
+
+    </div>
+
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Asset</th>
+                <th>Description</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for asset in repair_assets %}
+
+            <tr>
+
+                <td>
+                    <strong>
+                        {{ asset["asset_id"] }}
+                    </strong>
+                </td>
+
+                <td>
+                    {{ asset["description"] }}
+                </td>
+
+                <td>
+                    <span class="pill">
+                        {{ asset["status"] }}
+                    </span>
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</section>
+
+{% endif %}
+
+
+{% if jobs_leaving_soon %}
+
+<section class="panel attention-panel">
+
+    <h3>
+        Jobs Leaving Soon
+    </h3>
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Job</th>
+                <th>Customer</th>
+                <th>Out</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for job in jobs_leaving_soon %}
+
+            <tr>
+
+                <td>
+                    <a href="/jobs/{{ job['id'] }}">
+                        <strong>
+                            {{ job["job_number"] }}
+                        </strong>
+                    </a>
+                </td>
+
+                <td>
+                    {{ job["customer_name"] }}
+                </td>
+
+                <td>
+                    {{ job["out_date"] }}
+
+                    {% if job["out_time"] %}
+                        {{ job["out_time"] }}
+                    {% endif %}
+                </td>
+
+                <td>
+                    <span class="pill">
+                        {{ job["status"] }}
+                    </span>
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</section>
+
+{% endif %}
 
 
 <section class="grid">
@@ -159,18 +511,21 @@
 
             <div>
                 <h3>Upcoming / Active Jobs</h3>
+
                 <p class="muted-text">
                     Next warehouse jobs by out date.
                 </p>
             </div>
 
             {% if "jobs.view" in request.state.permissions %}
+
             <a
                 href="/jobs"
                 class="panel-action-link"
             >
                 View All Jobs &rarr;
             </a>
+
             {% endif %}
 
         </div>
@@ -299,12 +654,14 @@
 <section class="panel dashboard-quick-action">
 
     <div>
+
         <h3>Repair Management</h3>
 
         <p>
             Open repair tickets, track parts and return equipment
             to service.
         </p>
+
     </div>
 
     <a
