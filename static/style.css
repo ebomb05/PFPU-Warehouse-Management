@@ -498,3 +498,173 @@
     }
 
 }
+
+@'
+
+/* =========================================================
+   PFPU OPERATIONAL DASHBOARD
+   Phase 6.3A
+   ========================================================= */
+
+.dashboard-stats {
+    display: grid;
+    grid-template-columns:
+        repeat(6, minmax(130px, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.dashboard-stat-card {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    min-height: 130px;
+    padding: 18px;
+
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+
+    color: var(--ink);
+    text-decoration: none;
+
+    box-shadow: 0 2px 8px #0000000b;
+
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.dashboard-stat-card:hover {
+    transform: translateY(-2px);
+    border-color: #9aa8c3;
+    box-shadow: 0 6px 18px #00000012;
+}
+
+.dashboard-stat-card strong {
+    font-size: 34px;
+    line-height: 1;
+    margin-top: 7px;
+}
+
+.dashboard-stat-card small {
+    color: var(--muted);
+}
+
+.dashboard-stat-label {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dashboard-stat-card.attention {
+    background: #fff8e7;
+    border-color: #e4c66d;
+}
+
+.dashboard-stat-card.danger-card {
+    background: var(--bad);
+    border-color: #dc8b8b;
+}
+
+.panel-heading-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.panel-heading-row h3 {
+    margin-bottom: 4px;
+}
+
+.muted-text {
+    color: var(--muted);
+    margin-top: 0;
+}
+
+.panel-action-link {
+    white-space: nowrap;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.dashboard-quick-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.dashboard-quick-action h3 {
+    margin-bottom: 5px;
+}
+
+.dashboard-quick-action p {
+    margin-bottom: 0;
+}
+
+.dashboard-action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 46px;
+    padding: 10px 18px;
+
+    background: var(--accent);
+    color: white;
+
+    border-radius: 9px;
+
+    text-decoration: none;
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+
+@media (max-width: 1200px) {
+
+    .dashboard-stats {
+        grid-template-columns:
+            repeat(3, minmax(140px, 1fr));
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .dashboard-stats {
+        grid-template-columns:
+            repeat(2, minmax(130px, 1fr));
+    }
+
+    .panel-heading-row,
+    .dashboard-quick-action {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .dashboard-action-button {
+        width: 100%;
+    }
+
+}
+
+
+@media (max-width: 420px) {
+
+    .dashboard-stats {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+'@ | Add-Content static\style.css

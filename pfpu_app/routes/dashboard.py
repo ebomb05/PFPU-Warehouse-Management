@@ -1,9 +1,11 @@
+from datetime import date
+
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse
-from ..services.auth_service import request_has_permission
 
 from ..database import connect
 from ..services.auth_service import request_has_permission
+
 
 router = APIRouter()
 
@@ -24,32 +26,32 @@ def dashboard(
 
     con = connect()
 
+    today = date.today().isoformat()
+
     stats = {
-        "items": con.execute(
-            "SELECT COUNT(*) FROM item_master"
-        ).fetchone()[0],
-
-        "qty": con.execute(
-            "SELECT COALESCE(SUM(qty_total),0) FROM item_master"
-        ).fetchone()[0],
-
-        "assets": con.execute(
-            "SELECT COUNT(*) FROM assets"
-        ).fetchone()[0],
-
-        "jobs": con.execute(
+        "jobs_today": con.execute(
             """
             SELECT COUNT(*)
             FROM jobs
-            WHERE status NOT IN ('Cancelled','Returned')
-            """
+            WHERE out_date = ?
+              AND status NOT IN (
+                  'Cancelled',
+                  'Returned',
+                  'Completed'
+              )
+            """,
+            (today,),
         ).fetchone()[0],
 
-        "out": con.execute(
+        "active_jobs": con.execute(
             """
             SELECT COUNT(*)
-            FROM assets
-            WHERE status='Checked Out'
+            FROM jobs
+            WHERE status NOT IN (
+                'Cancelled',
+                'Returned',
+                'Completed'
+            )
             """
         ).fetchone()[0],
 
@@ -57,16 +59,58 @@ def dashboard(
             """
             SELECT COUNT(*)
             FROM assets
-            WHERE current_location='Prep Area'
+            WHERE status = 'Reserved / Prep'
+            """
+        ).fetchone()[0],
+
+        "job_site": con.execute(
+            """
+            SELECT COUNT(*)
+            FROM assets
+            WHERE status = 'Checked Out'
+            """
+        ).fetchone()[0],
+
+        "inspection": con.execute(
+            """
+            SELECT COUNT(*)
+            FROM assets
+            WHERE status = 'Returned / Inspection'
+            """
+        ).fetchone()[0],
+
+        "repair": con.execute(
+            """
+            SELECT COUNT(*)
+            FROM assets
+            WHERE status IN (
+                'Repair',
+                'Waiting for Parts',
+                'Out of Commission',
+                'Needs Replacement',
+                'Dead'
+            )
             """
         ).fetchone()[0],
     }
 
     jobs = con.execute(
         """
-        SELECT *
-        FROM jobs
-        ORDER BY out_date
+        SELECT
+            j.*,
+            COALESCE(c.name, j.customer) AS customer_name
+        FROM jobs j
+        LEFT JOIN customers c
+            ON c.id = j.customer_id
+        WHERE j.status NOT IN (
+            'Cancelled',
+            'Returned',
+            'Completed'
+        )
+        ORDER BY
+            j.out_date,
+            j.out_time,
+            j.job_number
         LIMIT 8
         """
     ).fetchall()
@@ -75,8 +119,8 @@ def dashboard(
         """
         SELECT
             tracking_priority,
-            COUNT(*) c,
-            COALESCE(SUM(qty_total),0) q
+            COUNT(*) AS c,
+            COALESCE(SUM(qty_total), 0) AS q
         FROM item_master
         GROUP BY tracking_priority
         ORDER BY tracking_priority
@@ -92,6 +136,7 @@ def dashboard(
             "stats": stats,
             "jobs": jobs,
             "priorities": priorities,
+            "today": today,
             "message": message,
         },
     )

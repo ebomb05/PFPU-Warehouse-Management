@@ -3,37 +3,150 @@
 {% block content %}
 
 <header>
-    <h2>Warehouse Dashboard</h2>
-    <p>Local rental inventory starter system.</p>
+    <div>
+        <h2>Warehouse Dashboard</h2>
+        <p>
+            Daily warehouse operations and equipment status.
+        </p>
+    </div>
 </header>
 
 
 {% if message %}
-<section
-    class="panel"
-    style="
-        border: 2px solid #b45309;
-        background: #fef3c7;
-        color: #7c2d12;
-        font-weight: bold;
-        margin-bottom: 18px;
-    "
->
-    ⚠ {{ message }}
+
+<section class="scan-feedback info">
+
+    <div class="scan-feedback-icon">
+        &#8505;
+    </div>
+
+    <div class="scan-feedback-message">
+        {{ message }}
+    </div>
+
 </section>
+
 {% endif %}
 
 
-<section class="cards">
+<section class="dashboard-stats">
 
-    {% for k, v in stats.items() %}
+    <a
+        href="/jobs"
+        class="dashboard-stat-card"
+    >
+        <span class="dashboard-stat-label">
+            Jobs Today
+        </span>
 
-    <div class="card">
-        <span>{{ k|upper }}</span>
-        <strong>{{ v }}</strong>
-    </div>
+        <strong>
+            {{ stats["jobs_today"] }}
+        </strong>
 
-    {% endfor %}
+        <small>
+            Scheduled out today
+        </small>
+    </a>
+
+
+    <a
+        href="/jobs"
+        class="dashboard-stat-card"
+    >
+        <span class="dashboard-stat-label">
+            Active Jobs
+        </span>
+
+        <strong>
+            {{ stats["active_jobs"] }}
+        </strong>
+
+        <small>
+            Current job workload
+        </small>
+    </a>
+
+
+    <a
+        href="/jobs"
+        class="dashboard-stat-card"
+    >
+        <span class="dashboard-stat-label">
+            In PREP
+        </span>
+
+        <strong>
+            {{ stats["prep"] }}
+        </strong>
+
+        <small>
+            Reserved tracked assets
+        </small>
+    </a>
+
+
+    <a
+        href="/jobs"
+        class="dashboard-stat-card"
+    >
+        <span class="dashboard-stat-label">
+            At Job Site
+        </span>
+
+        <strong>
+            {{ stats["job_site"] }}
+        </strong>
+
+        <small>
+            Checked-out assets
+        </small>
+    </a>
+
+
+    <a
+        href="/jobs"
+        class="
+            dashboard-stat-card
+            {% if stats['inspection'] > 0 %}
+                attention
+            {% endif %}
+        "
+    >
+        <span class="dashboard-stat-label">
+            Awaiting Inspection
+        </span>
+
+        <strong>
+            {{ stats["inspection"] }}
+        </strong>
+
+        <small>
+            Returned to PREP
+        </small>
+    </a>
+
+
+    <a
+        href="/repairs"
+        class="
+            dashboard-stat-card
+            {% if stats['repair'] > 0 %}
+                danger-card
+            {% endif %}
+        "
+    >
+        <span class="dashboard-stat-label">
+            Repair / Down
+        </span>
+
+        <strong>
+            {{ stats["repair"] }}
+        </strong>
+
+        <small>
+            Equipment needing attention
+        </small>
+    </a>
 
 </section>
 
@@ -42,36 +155,92 @@
 
     <div class="panel">
 
-        <h3>Upcoming / Active Jobs</h3>
+        <div class="panel-heading-row">
+
+            <div>
+                <h3>Upcoming / Active Jobs</h3>
+                <p class="muted-text">
+                    Next warehouse jobs by out date.
+                </p>
+            </div>
+
+            {% if "jobs.view" in request.state.permissions %}
+            <a
+                href="/jobs"
+                class="panel-action-link"
+            >
+                View All Jobs &rarr;
+            </a>
+            {% endif %}
+
+        </div>
+
+
+        {% if jobs %}
 
         <table>
 
-            <tr>
-                <th>Job</th>
-                <th>Customer</th>
-                <th>Out</th>
-                <th>Return</th>
-                <th>Status</th>
-            </tr>
+            <thead>
+                <tr>
+                    <th>Job</th>
+                    <th>Customer</th>
+                    <th>Out</th>
+                    <th>Return</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
 
-            {% for j in jobs %}
+            <tbody>
 
-            <tr>
-                <td>
-                    <a href="/jobs/{{ j.id }}">
-                        {{ j.job_number }}
-                    </a>
-                </td>
+            {% for job in jobs %}
 
-                <td>{{ j.customer }}</td>
-                <td>{{ j.out_date }}</td>
-                <td>{{ j.return_date }}</td>
-                <td>{{ j.status }}</td>
-            </tr>
+                <tr>
+
+                    <td>
+                        <a href="/jobs/{{ job['id'] }}">
+                            <strong>
+                                {{ job["job_number"] }}
+                            </strong>
+                        </a>
+                    </td>
+
+                    <td>
+                        {{ job["customer_name"] }}
+                    </td>
+
+                    <td>
+                        {{ job["out_date"] }}
+
+                        {% if job["out_time"] %}
+                            {{ job["out_time"] }}
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {{ job["return_date"] }}
+                    </td>
+
+                    <td>
+                        <span class="pill">
+                            {{ job["status"] }}
+                        </span>
+                    </td>
+
+                </tr>
 
             {% endfor %}
 
+            </tbody>
+
         </table>
+
+        {% else %}
+
+        <p>
+            No active jobs are currently scheduled.
+        </p>
+
+        {% endif %}
 
     </div>
 
@@ -80,23 +249,43 @@
 
         <h3>Tracking Priority</h3>
 
+        <p class="muted-text">
+            Inventory totals by tracking priority.
+        </p>
+
         <table>
 
-            <tr>
-                <th>Priority</th>
-                <th>Lines</th>
-                <th>Qty</th>
-            </tr>
+            <thead>
+                <tr>
+                    <th>Priority</th>
+                    <th>Lines</th>
+                    <th>Qty</th>
+                </tr>
+            </thead>
 
-            {% for p in priorities %}
+            <tbody>
 
-            <tr>
-                <td>{{ p.tracking_priority or "Unassigned" }}</td>
-                <td>{{ p.c }}</td>
-                <td>{{ p.q }}</td>
-            </tr>
+            {% for priority in priorities %}
+
+                <tr>
+
+                    <td>
+                        {{ priority["tracking_priority"] or "Unassigned" }}
+                    </td>
+
+                    <td>
+                        {{ priority["c"] }}
+                    </td>
+
+                    <td>
+                        {{ priority["q"] }}
+                    </td>
+
+                </tr>
 
             {% endfor %}
+
+            </tbody>
 
         </table>
 
@@ -105,21 +294,28 @@
 </section>
 
 
-<section class="panel">
+{% if "repairs.view" in request.state.permissions %}
 
-    <h3>Repair Management</h3>
+<section class="panel dashboard-quick-action">
 
-    <p>
-        View equipment currently in repair, update repair status,
-        track parts, and return repaired equipment to service.
-    </p>
+    <div>
+        <h3>Repair Management</h3>
 
-    {% if "repairs.view" in request.state.permissions %}
-    <a href="/repairs">
-        Open Repair Management
+        <p>
+            Open repair tickets, track parts and return equipment
+            to service.
+        </p>
+    </div>
+
+    <a
+        href="/repairs"
+        class="dashboard-action-button"
+    >
+        Open Repairs
     </a>
-    {% endif %}
 
 </section>
+
+{% endif %}
 
 {% endblock %}
