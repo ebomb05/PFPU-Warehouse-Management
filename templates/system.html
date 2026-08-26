@@ -187,6 +187,44 @@
 
 </section>
 
+{% if pending_restore %}
+
+<section
+    class="panel"
+    style="
+        border: 2px solid #d8a72d;
+        background: #fff8e7;
+    "
+>
+
+    <h3>Pending Restore</h3>
+
+    <p>
+        PFPU is scheduled to restore:
+    </p>
+
+    <p>
+        <strong>
+            {{ pending_restore["backup_name"] }}
+        </strong>
+    </p>
+
+    <p>
+        Restart PFPU to perform the restore.
+    </p>
+
+    <form
+        method="post"
+        action="/system/restore/cancel"
+    >
+        <button type="submit">
+            Cancel Scheduled Restore
+        </button>
+    </form>
+
+</section>
+
+{% endif %}
 
 <section class="panel">
 
@@ -215,6 +253,7 @@
                 <th>Backup</th>
                 <th>Created</th>
                 <th>Size</th>
+                <th>Action</th>
             </tr>
 
         </thead>
@@ -237,6 +276,15 @@
 
                 <td>
                     {{ backup["size_mb"] }} MB
+                </td>
+
+                <td>
+                    <a
+                        href="/system/restore?backup_name={{ backup['name'] }}"
+                        class="panel-action-link"
+                    >
+                        Restore
+                    </a>
                 </td>
 
             </tr>

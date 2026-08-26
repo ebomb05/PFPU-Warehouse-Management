@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from .services.backup_service import create_database_backup
+from .services.restore_service import process_pending_restore
 
 from .config import (
     APP_TITLE,
@@ -42,10 +43,43 @@ from .services.excel_service import import_excel
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+
+    # -----------------------------------------------------
+    # SCHEDULED DATABASE RESTORE
+    # -----------------------------------------------------
+
+    restore_result = (
+        process_pending_restore()
+    )
+
+    if restore_result["performed"]:
+
+        if restore_result["success"]:
+            print(
+                "[PFPU Restore] "
+                + restore_result["message"]
+            )
+        else:
+            print(
+                "[PFPU Restore ERROR] "
+                + restore_result["message"]
+            )
+
+    # -----------------------------------------------------
+    # DATABASE INITIALIZATION / MIGRATIONS
+    # -----------------------------------------------------
+
     item_count = initialize_schema()
 
-    if item_count == 0 and EXCEL_PATH.exists():
+    if (
+        item_count == 0
+        and EXCEL_PATH.exists()
+    ):
         import_excel(EXCEL_PATH)
+
+    # -----------------------------------------------------
+    # STARTUP BACKUP
+    # -----------------------------------------------------
 
     backup_result = create_database_backup(
         "startup"

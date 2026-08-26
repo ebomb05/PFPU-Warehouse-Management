@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>Restore Database</h2>
+
+        <p>
+            Restore PFPU from a verified backup.
+        </p>
+    </div>
+
+    <div>
+        <a href="/system">
+            &larr; Back to System &amp; Data
+        </a>
+    </div>
+</header>
+
+
+<section
+    class="panel"
+    style="
+        border: 2px solid #dc6b6b;
+        background: #fff4f4;
+    "
+>
+
+    <h3>
+        &#9888; Database Restore Warning
+    </h3>
+
+    <p>
+        Restoring will replace the current PFPU database
+        the next time the application starts.
+    </p>
+
+    <p>
+        PFPU will automatically create a safety backup
+        of the current database before restoring.
+    </p>
+
+    <p>
+        If the restored database fails verification,
+        PFPU will attempt to roll back automatically.
+    </p>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Selected Backup</h3>
+
+    <p>
+        <strong>
+            {{ backup_name }}
+        </strong>
+    </p>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Confirm Restore</h3>
+
+    <p>
+        Type
+        <strong>RESTORE</strong>
+        exactly to schedule this database restore.
+    </p>
+
+    <form
+        method="post"
+        action="/system/restore/schedule"
+    >
+
+        <input
+            type="hidden"
+            name="backup_name"
+            value="{{ backup_name }}"
+        >
+
+        <label>Confirmation</label>
+
+        <input
+            type="text"
+            name="confirmation"
+            autocomplete="off"
+            placeholder="Type RESTORE"
+            required
+            style="
+                width: 100%;
+                box-sizing: border-box;
+                margin-bottom: 14px;
+            "
+        >
+
+        <button
+            type="submit"
+            class="big"
+            style="
+                width: 100%;
+                background: #8a1f1f;
+            "
+        >
+            Schedule Database Restore
+        </button>
+
+    </form>
+
+</section>
+
+{% endblock %}
