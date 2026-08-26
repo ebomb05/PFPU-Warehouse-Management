@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<section
+    class="panel"
+    style="
+        max-width: 760px;
+        margin: 40px auto;
+    "
+>
+
+    <header style="margin-bottom: 28px;">
+
+        <h2>Set Up Your Inventory</h2>
+
+        <p>
+            Your System Administrator account is ready.
+            Now choose how you want to begin building
+            the warehouse inventory.
+        </p>
+
+    </header>
+
+
+    <div
+        style="
+            display: grid;
+            grid-template-columns: repeat(
+                auto-fit,
+                minmax(280px, 1fr)
+            );
+            gap: 20px;
+        "
+    >
+
+        <section class="panel">
+
+            <h3>Import Existing Inventory</h3>
+
+            <p>
+                Upload your existing Excel inventory and
+                let PFPU create the starting inventory list.
+            </p>
+
+            <p>
+                <strong>
+                    Your workbook should contain your complete
+                    starting inventory.
+                </strong>
+            </p>
+
+            <p class="muted-text">
+                Initial Excel import is available only while
+                PFPU inventory is empty. Additional equipment
+                can be added manually afterward.
+            </p>
+
+            <a
+                href="/inventory/import"
+                class="dashboard-action-button"
+            >
+                Import Existing Inventory
+            </a>
+
+        </section>
+
+
+        <section class="panel">
+
+            <h3>Start Empty</h3>
+
+            <p>
+                Skip the Excel import and begin with an empty
+                PFPU inventory.
+            </p>
+
+            <p>
+                Equipment can be added manually as the warehouse
+                is organized and assets are created.
+            </p>
+
+            <p class="muted-text">
+                This is best for a new warehouse or an
+                installation without an existing complete
+                inventory spreadsheet.
+            </p>
+
+            <a
+                href="/inventory"
+                class="dashboard-action-button"
+            >
+                Start Empty
+            </a>
+
+        </section>
+
+    </div>
+
+
+    <section
+        class="panel"
+        style="margin-top: 22px;"
+    >
+
+        <h3>Before Importing</h3>
+
+        <p>
+            Review your Excel inventory before uploading it.
+            Using the most complete list possible will reduce
+            the amount of equipment that must be entered
+            manually later.
+        </p>
+
+        <p class="muted-text">
+            PFPU will show a preview and row count before
+            anything is imported, and a database safety backup
+            will be created before the import is committed.
+        </p>
+
+    </section>
+
+</section>
+
+{% endblock %}

@@ -23,7 +23,7 @@ def setup_page(
 ):
     if not system_needs_bootstrap():
         return RedirectResponse(
-            "/login",
+            "/setup/inventory",
             status_code=303,
         )
 
