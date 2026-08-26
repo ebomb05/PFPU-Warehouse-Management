@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
+from .services.backup_service import create_database_backup
 
 from .config import (
     APP_TITLE,
@@ -31,6 +32,7 @@ from .routes import (
     positions,
     repairs,
     scan,
+    system,
     users,
     vehicles,
 )
@@ -44,6 +46,21 @@ async def lifespan(app: FastAPI):
 
     if item_count == 0 and EXCEL_PATH.exists():
         import_excel(EXCEL_PATH)
+
+    backup_result = create_database_backup(
+        "startup"
+    )
+
+    if backup_result["success"]:
+        print(
+            "[PFPU Backup] "
+            + backup_result["message"]
+        )
+    else:
+        print(
+            "[PFPU Backup WARNING] "
+            + backup_result["message"]
+        )
 
     yield
 
@@ -188,6 +205,7 @@ def create_app() -> FastAPI:
     app.include_router(barcodes.router)
     app.include_router(export.router)
     app.include_router(audits.router)
+    app.include_router(system.router)
 
     return app
 

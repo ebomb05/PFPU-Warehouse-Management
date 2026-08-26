@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>System &amp; Data</h2>
+
+        <p>
+            Database health, backups, exports,
+            and system data management.
+        </p>
+    </div>
+</header>
+
+
+{% if message %}
+
+<section
+    class="
+        scan-feedback
+        {% if result == 'success' %}
+            success
+        {% elif result == 'error' %}
+            error
+        {% else %}
+            info
+        {% endif %}
+    "
+>
+
+    <div class="scan-feedback-icon">
+
+        {% if result == "success" %}
+            &#10003;
+        {% elif result == "error" %}
+            &#9888;
+        {% else %}
+            &#8505;
+        {% endif %}
+
+    </div>
+
+    <div class="scan-feedback-message">
+        {{ message }}
+    </div>
+
+</section>
+
+{% endif %}
+
+
+<section class="system-data-grid">
+
+    <div class="panel system-data-card">
+
+        <div>
+
+            <span class="system-card-label">
+                Database Health
+            </span>
+
+            {% if integrity["success"] %}
+
+                <strong class="system-health-good">
+                    Healthy
+                </strong>
+
+                <p>
+                    SQLite integrity check passed.
+                </p>
+
+            {% else %}
+
+                <strong class="system-health-bad">
+                    Attention Required
+                </strong>
+
+                <p>
+                    {{ integrity["message"] }}
+                </p>
+
+            {% endif %}
+
+        </div>
+
+        <div class="system-card-detail">
+            Database size:
+            <strong>
+                {{ database_size_mb }} MB
+            </strong>
+        </div>
+
+    </div>
+
+
+    <div class="panel system-data-card">
+
+        <div>
+
+            <span class="system-card-label">
+                Database Backups
+            </span>
+
+            <strong>
+                {{ backup_count }}
+            </strong>
+
+            <p>
+                Verified SQLite backups currently stored.
+            </p>
+
+        </div>
+
+        <div class="system-card-detail">
+            Retention:
+            <strong>
+                newest {{ retention_count }}
+            </strong>
+        </div>
+
+    </div>
+
+
+    <div class="panel system-data-card">
+
+        <div>
+
+            <span class="system-card-label">
+                Excel Export
+            </span>
+
+            <strong>
+                Inventory Data
+            </strong>
+
+            <p>
+                Export the current warehouse data
+                to an Excel workbook.
+            </p>
+
+        </div>
+
+        <a
+            href="/export"
+            class="dashboard-action-button"
+        >
+            Export Excel
+        </a>
+
+    </div>
+
+</section>
+
+
+<section class="panel">
+
+    <div class="system-backup-action">
+
+        <div>
+
+            <h3>Create Database Backup</h3>
+
+            <p>
+                Creates a verified snapshot of the current
+                PFPU database before cleanup, maintenance,
+                or major changes.
+            </p>
+
+        </div>
+
+        <form
+            method="post"
+            action="/system/backup"
+        >
+
+            <button
+                type="submit"
+                class="big"
+            >
+                Backup Now
+            </button>
+
+        </form>
+
+    </div>
+
+</section>
+
+
+<section class="panel">
+
+    <div class="panel-heading-row">
+
+        <div>
+
+            <h3>Recent Backups</h3>
+
+            <p class="muted-text">
+                The 10 newest database backups.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    {% if recent_backups %}
+
+    <table>
+
+        <thead>
+
+            <tr>
+                <th>Backup</th>
+                <th>Created</th>
+                <th>Size</th>
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+        {% for backup in recent_backups %}
+
+            <tr>
+
+                <td>
+                    <strong>
+                        {{ backup["name"] }}
+                    </strong>
+                </td>
+
+                <td>
+                    {{ backup["modified"] }}
+                </td>
+
+                <td>
+                    {{ backup["size_mb"] }} MB
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% else %}
+
+        <p>
+            No database backups have been created yet.
+        </p>
+
+    {% endif %}
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Backup Protection</h3>
+
+    <p>
+        PFPU creates a verified database backup automatically
+        when the application starts. Manual backups can also
+        be created before major warehouse or system changes.
+    </p>
+
+    <p class="muted-text">
+        Only the newest {{ retention_count }} backups are retained
+        automatically.
+    </p>
+
+</section>
+
+{% endblock %}

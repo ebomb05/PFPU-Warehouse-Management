@@ -10,9 +10,12 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 
 DATA_DIR = PROJECT_ROOT / "data"
+BACKUP_DIR = PROJECT_ROOT / "backups"
 BARCODE_DIR = PROJECT_ROOT / "barcodes"
 TEMPLATE_DIR = PROJECT_ROOT / "templates"
 STATIC_DIR = PROJECT_ROOT / "static"
+
+BACKUP_RETENTION_COUNT = 30
 
 DB_PATH = DATA_DIR / "pfpu_inventory.sqlite3"
 EXCEL_PATH = DATA_DIR / "PFPU_Inventory_2025_SYSTEM_COPY.xlsx"
