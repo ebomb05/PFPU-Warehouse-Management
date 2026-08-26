@@ -118,6 +118,7 @@ def create_app() -> FastAPI:
 
         public_paths = {
             "/login",
+            "/setup",
         }
 
         public_prefixes = (

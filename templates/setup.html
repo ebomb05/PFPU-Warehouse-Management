@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<section
+    class="panel"
+    style="
+        max-width: 560px;
+        margin: 40px auto;
+    "
+>
+
+    <header style="margin-bottom: 24px;">
+
+        <h2>
+            Welcome to PFPU Warehouse Manager
+        </h2>
+
+        <p>
+            Create the first System Administrator account
+            for this installation.
+        </p>
+
+    </header>
+
+
+    {% if message %}
+
+    <section
+        class="scan-feedback error"
+        style="margin-bottom: 20px;"
+    >
+
+        <div class="scan-feedback-icon">
+            &#9888;
+        </div>
+
+        <div class="scan-feedback-message">
+            {{ message }}
+        </div>
+
+    </section>
+
+    {% endif %}
+
+
+    <form
+        method="post"
+        action="/setup"
+    >
+
+        <label>
+            Administrator Name
+        </label>
+
+        <input
+            type="text"
+            name="display_name"
+            required
+            autocomplete="name"
+            placeholder="Full name"
+        >
+
+
+        <label>
+            Username
+        </label>
+
+        <input
+            type="text"
+            name="username"
+            required
+            autocomplete="username"
+            placeholder="Administrator username"
+        >
+
+
+        <label>
+            Email
+        </label>
+
+        <input
+            type="email"
+            name="email"
+            autocomplete="email"
+            placeholder="Optional email address"
+        >
+
+
+        <label>
+            Password
+        </label>
+
+        <input
+            type="password"
+            name="password"
+            required
+            minlength="8"
+            autocomplete="new-password"
+            placeholder="Minimum 8 characters"
+        >
+
+
+        <label>
+            Confirm Password
+        </label>
+
+        <input
+            type="password"
+            name="confirm_password"
+            required
+            minlength="8"
+            autocomplete="new-password"
+            placeholder="Enter password again"
+        >
+
+
+        <button
+            type="submit"
+            class="big"
+            style="margin-top: 18px;"
+        >
+            Create System Administrator
+        </button>
+
+    </form>
+
+
+    <p
+        class="muted-text"
+        style="margin-top: 24px;"
+    >
+        This page is available only while the installation
+        contains no user accounts.
+    </p>
+
+</section>
+
+{% endblock %}

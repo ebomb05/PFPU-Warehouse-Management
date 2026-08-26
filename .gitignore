@@ -32,5 +32,8 @@ backups/
 build/
 dist/
 
+# Installer release output
+release/
+
 data/PFPU_inventory_export_*.xlsx
 .env
