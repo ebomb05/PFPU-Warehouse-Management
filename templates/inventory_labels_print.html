@@ -1,0 +1,152 @@
+<!doctype html>
+
+<html>
+
+<head>
+
+    <meta charset="utf-8">
+
+    <title>
+        QR Labels - {{ item["description"] }}
+    </title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: white;
+            color: black;
+        }
+
+        .print-toolbar {
+            margin-bottom: 20px;
+        }
+
+        .print-toolbar button,
+        .print-toolbar a {
+            display: inline-block;
+            padding: 10px 16px;
+            margin-right: 10px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .labels {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fill, minmax(320px, 1fr));
+            gap: 12px;
+        }
+
+        .label {
+            border: 1px solid #bbb;
+            padding: 10px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        .label img {
+            display: block;
+            width: 100%;
+            max-width: 420px;
+            height: auto;
+        }
+
+        .label-info {
+            margin-top: 6px;
+        }
+
+        .asset-id {
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .description {
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        @media print {
+
+            body {
+                margin: 0;
+            }
+
+            .print-toolbar {
+                display: none;
+            }
+
+            .labels {
+                gap: 0;
+            }
+
+            .label {
+                border: none;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div class="print-toolbar">
+
+        <button
+            type="button"
+            onclick="window.print()"
+        >
+            Print All {{ assets|length }} Labels
+        </button>
+
+        <a href="/inventory/{{ item['id'] }}">
+            Back to Inventory Item
+        </a>
+
+    </div>
+
+
+    <h2>
+        {{ item["description"] }}
+    </h2>
+
+    <p>
+        {{ assets|length }} individually tracked QR labels
+    </p>
+
+
+    <div class="labels">
+
+        {% for asset in assets %}
+
+        <div class="label">
+
+            <img
+                src="/barcodes/{{ asset['asset_id'] }}.svg"
+                alt="QR label for {{ asset['asset_id'] }}"
+            >
+
+            <div class="label-info">
+
+                <div class="asset-id">
+                    {{ asset["asset_id"] }}
+                </div>
+
+                <div class="description">
+                    {{ item["description"] }}
+                </div>
+
+            </div>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+</body>
+
+</html>

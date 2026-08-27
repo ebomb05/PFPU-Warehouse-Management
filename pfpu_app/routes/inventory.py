@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from urllib.parse import quote
 
 from ..database import connect
+from ..services.asset_generation_service import generate_assets_for_item
 from ..services.auth_service import request_has_permission
 
 router = APIRouter()
@@ -152,14 +154,32 @@ def inventory_detail(
         """
     ).fetchall()
 
-    tracked_count = con.execute(
+    tracked_assets = con.execute(
         """
-        SELECT COUNT(*)
+        SELECT
+            id,
+            asset_id,
+            barcode_value,
+            serial_number,
+            status,
+            current_location,
+            assigned_job_id,
+            created_at
         FROM assets
         WHERE item_master_id = ?
+        ORDER BY asset_id
         """,
         (item_id,),
-    ).fetchone()[0]
+    ).fetchall()
+
+    tracked_count = len(tracked_assets)
+
+    total_quantity = item["qty_total"] or 0
+
+    remaining_untracked = max(
+        0,
+        total_quantity - tracked_count,
+    )
 
     assigned_quantity = sum(
         row["qty_assigned"]
@@ -181,12 +201,147 @@ def inventory_detail(
             "storage_locations": storage_locations,
             "available_locations": available_locations,
             "tracked_count": tracked_count,
+            "tracked_assets": tracked_assets,
+            "remaining_untracked": remaining_untracked,
             "assigned_quantity": assigned_quantity,
             "unassigned_quantity": unassigned_quantity,
             "message": message,
         },
     )
 
+@router.post("/inventory/{item_id}/assets/generate-remaining")
+def generate_remaining_assets(
+    request: Request,
+    item_id: int,
+    location_id: int = Form(...),
+):
+    if not request_has_permission(
+        request,
+        "assets.create",
+    ):
+        return RedirectResponse(
+            "/?message=Access denied",
+            status_code=303,
+        )
+
+    con = connect()
+
+    item = con.execute(
+        """
+        SELECT *
+        FROM item_master
+        WHERE id = ?
+        """,
+        (item_id,),
+    ).fetchone()
+
+    if not item:
+        con.close()
+
+        return RedirectResponse(
+            "/inventory?message=Inventory item not found",
+            status_code=303,
+        )
+
+    tracked_count = con.execute(
+        """
+        SELECT COUNT(*)
+        FROM assets
+        WHERE item_master_id = ?
+        """,
+        (item_id,),
+    ).fetchone()[0]
+
+    con.close()
+
+    total_quantity = item["qty_total"] or 0
+
+    remaining = max(
+        0,
+        total_quantity - tracked_count,
+    )
+
+    if remaining < 1:
+        return RedirectResponse(
+            f"/inventory/{item_id}?message="
+            + quote("All units are already individually tracked."),
+            status_code=303,
+        )
+
+    result = generate_assets_for_item(
+        item_master_id=item_id,
+        qty=remaining,
+        location_id=location_id,
+    )
+
+    return RedirectResponse(
+        f"/inventory/{item_id}?message="
+        + quote(result["message"]),
+        status_code=303,
+    )
+
+@router.get(
+    "/inventory/{item_id}/labels/print",
+    response_class=HTMLResponse,
+)
+def print_inventory_labels(
+    request: Request,
+    item_id: int,
+):
+    if not request_has_permission(
+        request,
+        "inventory.view",
+    ):
+        return RedirectResponse(
+            "/?message=Access denied",
+            status_code=303,
+        )
+
+    con = connect()
+
+    item = con.execute(
+        """
+        SELECT *
+        FROM item_master
+        WHERE id = ?
+        """,
+        (item_id,),
+    ).fetchone()
+
+    if not item:
+        con.close()
+
+        return RedirectResponse(
+            "/inventory?message=Inventory item not found",
+            status_code=303,
+        )
+
+    assets = con.execute(
+        """
+        SELECT
+            id,
+            asset_id,
+            barcode_value,
+            description,
+            status,
+            current_location
+        FROM assets
+        WHERE item_master_id = ?
+        ORDER BY asset_id
+        """,
+        (item_id,),
+    ).fetchall()
+
+    con.close()
+
+    return request.app.state.templates.TemplateResponse(
+        "inventory_labels_print.html",
+        {
+            "request": request,
+            "item": item,
+            "assets": assets,
+        },
+    )
 
 @router.post("/inventory/{item_id}/storage/add")
 def add_storage_location(

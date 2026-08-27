@@ -243,4 +243,207 @@
 
 </section>
 
+<section class="panel">
+
+    <div class="panel-heading">
+        <div>
+            <h3>Individual Assets & QR Tracking</h3>
+
+            <p>
+                Manage individually tracked equipment and QR labels
+                for this inventory item.
+            </p>
+        </div>
+    </div>
+
+
+    <table>
+
+        <tr>
+            <th>Total Owned</th>
+            <td>{{ item["qty_total"] or 0 }}</td>
+        </tr>
+
+        {% if tracked_assets %}
+
+        <div style="margin-top: 20px; margin-bottom: 20px;">
+
+            <a
+                href="/inventory/{{ item['id'] }}/labels/print"
+                target="_blank"
+                class="button"
+            >
+                Print All {{ tracked_count }} QR Labels
+            </a>
+
+        </div>
+
+        {% endif %}
+
+        <tr>
+            <th>QR Tracked Assets</th>
+            <td>{{ tracked_count }}</td>
+        </tr>
+
+        <tr>
+            <th>Remaining Untracked</th>
+            <td>
+                <strong>{{ remaining_untracked }}</strong>
+            </td>
+        </tr>
+
+    </table>
+
+{% if remaining_untracked > 0 %}
+
+    {% if request.state.can("assets.create") %}
+
+    <div style="margin-top: 20px;">
+
+        <h4>
+            Generate Remaining QR Assets
+        </h4>
+
+        <p>
+            {{ remaining_untracked }} of
+            {{ item["qty_total"] or 0 }}
+            unit(s) still need individual QR tracking.
+        </p>
+
+        <form
+            method="post"
+            action="/inventory/{{ item['id'] }}/assets/generate-remaining"
+            class="rowform"
+        >
+
+            <select
+                name="location_id"
+                required
+                data-searchable="true"
+                data-search-placeholder="Choose starting location..."
+            >
+
+                <option value="">
+                    Choose starting location...
+                </option>
+
+                {% for location in available_locations %}
+
+                <option value="{{ location['id'] }}">
+                    {{ location["code"] }}
+
+                    {% if location["name"] %}
+                        — {{ location["name"] }}
+                    {% endif %}
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+            <button type="submit">
+                Generate Remaining
+                {{ remaining_untracked }}
+                QR Assets
+            </button>
+
+        </form>
+
+        <p>
+            <small>
+                All newly generated assets will begin at the
+                selected warehouse location.
+            </small>
+        </p>
+
+    </div>
+
+    {% endif %}
+
+{% else %}
+
+    <p style="margin-top: 20px;">
+        <strong>
+            ✓ All {{ item["qty_total"] or 0 }} units are
+            individually QR tracked.
+        </strong>
+    </p>
+
+{% endif %}
+
+    {% if tracked_assets %}
+
+    <h4 style="margin-top: 24px;">
+        Tracked Assets
+    </h4>
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Asset ID</th>
+                <th>QR</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Serial Number</th>
+                <th>Label</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for asset in tracked_assets %}
+
+            <tr>
+
+                <td>
+                    <a
+                        href="/barcodes/{{ asset['asset_id'] }}.svg"
+                        target="_blank"
+                        class="button"
+                    >
+                        Print
+                    </a>
+                </td>
+
+                <td>
+                    <a
+                        href="/barcodes/{{ asset['asset_id'] }}.svg"
+                        target="_blank"
+                    >
+                        View QR
+                    </a>
+                </td>
+
+                <td>
+                    {{ asset["current_location"] or "Unassigned" }}
+                </td>
+
+                <td>
+                    {{ asset["status"] or "Available" }}
+                </td>
+
+                <td>
+                    {{ asset["serial_number"] or "—" }}
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% else %}
+
+    <p style="margin-top: 20px;">
+        No individually tracked assets have been created
+        for this equipment yet.
+    </p>
+
+    {% endif %}
+
+</section>
+
 {% endblock %}
