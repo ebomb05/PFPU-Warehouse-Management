@@ -1030,4 +1030,12 @@
     object-fit: contain;
 }
 
+.sidebar-version {
+    margin-top: auto;
+    padding: 16px 0 4px 0;
+    text-align: center;
+    font-size: 0.78rem;
+    opacity: 0.55;
+}
+
 '@ | Add-Content static\style.css

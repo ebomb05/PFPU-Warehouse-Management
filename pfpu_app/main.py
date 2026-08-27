@@ -7,6 +7,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from .services.backup_service import create_database_backup
 from .services.restore_service import process_pending_restore
+from .version import get_version_display
 
 from .config import (
     APP_TITLE,
@@ -219,6 +220,10 @@ def create_app() -> FastAPI:
     app.state.templates = Jinja2Templates(
         directory=TEMPLATE_DIR
     )
+
+    app.state.templates.env.globals[
+        "app_version_display"
+    ] = get_version_display()
 
     # ---------------------------------------------------------
     # ROUTES
