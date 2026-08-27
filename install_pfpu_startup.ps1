@@ -1,7 +1,5 @@
 # PFPU Warehouse Manager
-# Windows Startup Task Installer
-#
-# Run this script from an Administrator PowerShell window.
+# Windows Production Startup Task Installer
 
 $ErrorActionPreference = "Stop"
 
@@ -9,27 +7,16 @@ $TaskName = "Power Factory Productions Warehouse Manager Server"
 
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-$RunnerPath = Join-Path `
+$ServerExe = Join-Path `
     $ProjectRoot `
-    "run_pfpu_server.ps1"
-
-$PowerShellPath = `
-    "C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe"
-
-
-Write-Host ""
-Write-Host "============================================"
-Write-Host " Power Factory Productions Warehouse Manager"
-Write-Host " Server Startup Installer"
-Write-Host "============================================"
-Write-Host ""
+    "PFPUWarehouseServer.exe"
 
 
 # ------------------------------------------------------------
 # VERIFY ADMINISTRATOR
 # ------------------------------------------------------------
 
-$CurrentIdentity = `
+$CurrentIdentity =
     [Security.Principal.WindowsIdentity]::GetCurrent()
 
 $Principal = New-Object `
@@ -42,58 +29,46 @@ $IsAdministrator = $Principal.IsInRole(
 if (-not $IsAdministrator) {
 
     Write-Host "ERROR:"
-    Write-Host "This installer must be run as Administrator."
-    Write-Host ""
-    Write-Host "Right-click PowerShell and choose:"
-    Write-Host "Run as administrator"
-    Write-Host ""
+    Write-Host "Administrator access is required."
 
     exit 1
 }
 
 
 # ------------------------------------------------------------
-# VERIFY FILES
+# VERIFY SERVER EXE
 # ------------------------------------------------------------
 
-if (-not (Test-Path $RunnerPath)) {
+if (-not (Test-Path $ServerExe)) {
 
     Write-Host "ERROR:"
-    Write-Host "Production server runner was not found:"
-    Write-Host $RunnerPath
-
-    exit 1
-}
-
-if (-not (Test-Path $PowerShellPath)) {
-
-    Write-Host "ERROR:"
-    Write-Host "Windows PowerShell was not found:"
-    Write-Host $PowerShellPath
+    Write-Host "PFPU server executable was not found:"
+    Write-Host $ServerExe
 
     exit 1
 }
 
 
 # ------------------------------------------------------------
-# CREATE TASK
+# REMOVE OLD TASK
 # ------------------------------------------------------------
 
-Write-Host "Installing automatic server startup..."
-Write-Host ""
+Stop-ScheduledTask `
+    -TaskName $TaskName `
+    -ErrorAction SilentlyContinue
 
-$Arguments = (
-    '-NoProfile ' +
-    '-ExecutionPolicy Bypass ' +
-    '-WindowStyle Hidden ' +
-    '-File "' +
-    $RunnerPath +
-    '"'
-)
+Unregister-ScheduledTask `
+    -TaskName $TaskName `
+    -Confirm:$false `
+    -ErrorAction SilentlyContinue
+
+
+# ------------------------------------------------------------
+# CREATE PRODUCTION TASK
+# ------------------------------------------------------------
 
 $Action = New-ScheduledTaskAction `
-    -Execute $PowerShellPath `
-    -Argument $Arguments `
+    -Execute $ServerExe `
     -WorkingDirectory $ProjectRoot
 
 $Trigger = New-ScheduledTaskTrigger `
@@ -104,7 +79,9 @@ $Settings = New-ScheduledTaskSettingsSet `
     -DontStopIfGoingOnBatteries `
     -StartWhenAvailable `
     -MultipleInstances IgnoreNew `
-    -ExecutionTimeLimit ([TimeSpan]::Zero)
+    -ExecutionTimeLimit ([TimeSpan]::Zero) `
+    -RestartCount 10 `
+    -RestartInterval (New-TimeSpan -Minutes 1)
 
 $PrincipalSettings = New-ScheduledTaskPrincipal `
     -UserId "SYSTEM" `
@@ -117,24 +94,37 @@ $Task = New-ScheduledTask `
     -Settings $Settings `
     -Principal $PrincipalSettings `
     -Description (
-        "Automatically starts the Power Factory Productions " +
-        "Warehouse Manager server when Windows starts."
+        "Automatically runs the Power Factory Productions " +
+        "Warehouse Manager server."
     )
+
+
+# ------------------------------------------------------------
+# REGISTER TASK
+# ------------------------------------------------------------
 
 Register-ScheduledTask `
     -TaskName $TaskName `
     -InputObject $Task `
-    -Force | Out-Null
+    -Force |
+    Out-Null
 
 
+# ------------------------------------------------------------
+# START SERVER
+# ------------------------------------------------------------
+
+Start-ScheduledTask `
+    -TaskName $TaskName
+
+
+Write-Host ""
 Write-Host "SUCCESS:"
-Write-Host "Automatic startup task installed."
+Write-Host "PFPU production startup task installed."
 Write-Host ""
 Write-Host "Task:"
 Write-Host $TaskName
 Write-Host ""
-Write-Host "Runner:"
-Write-Host $RunnerPath
-Write-Host ""
-Write-Host "PFPU will now start automatically when Windows starts."
+Write-Host "Executable:"
+Write-Host $ServerExe
 Write-Host ""

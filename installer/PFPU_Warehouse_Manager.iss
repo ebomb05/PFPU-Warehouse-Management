@@ -39,14 +39,15 @@ Name: "{commonappdata}\Power Factory Productions\Warehouse Manager\uploads"
 
 [Files]
 Source: "..\dist\PFPUWarehouseServer\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\install_pfpu_startup.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\PFPU Warehouse Manager"; Filename: "http://127.0.0.1:8000"
-Name: "{commondesktop}\PFPU Warehouse Manager"; Filename: "http://127.0.0.1:8000"
+Name: "{group}\PFPU Warehouse Manager"; Filename: "http://127.0.0.1:8000"; IconFilename: "{app}\PFPUWarehouseServer.exe"
+Name: "{commondesktop}\PFPU Warehouse Manager"; Filename: "http://127.0.0.1:8000"; IconFilename: "{app}\PFPUWarehouseServer.exe"
 
 [Run]
-Filename: "{sys}\schtasks.exe"; Parameters: "/Create /TN ""Power Factory Productions Warehouse Manager Server"" /TR ""\""{app}\{#MyAppExeName}\"""" /SC ONSTART /RU SYSTEM /RL HIGHEST /F"; Flags: runhidden waituntilterminated
-Filename: "{sys}\schtasks.exe"; Parameters: "/Run /TN ""Power Factory Productions Warehouse Manager Server"""; Flags: runhidden waituntilterminated
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\install_pfpu_startup.ps1"""; Flags: runhidden waituntilterminated
+Filename: "http://127.0.0.1:8000"; Description: "Open PFPU Warehouse Manager"; Flags: shellexec postinstall skipifsilent nowait
 
 [UninstallRun]
 Filename: "{sys}\schtasks.exe"; Parameters: "/End /TN ""Power Factory Productions Warehouse Manager Server"""; Flags: runhidden waituntilterminated; RunOnceId: "StopPFPUTask"
@@ -56,6 +57,33 @@ Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN ""Power Factory Product
 
 const
   PFPUTaskName = 'Power Factory Productions Warehouse Manager Server';
+
+procedure StopExistingPFPUServer();
+var
+  ResultCode: Integer;
+begin
+  {
+    Stop an existing installed PFPU server before application
+    files are replaced during an upgrade or reinstall.
+
+    A missing task is normal on a brand-new installation.
+  }
+
+  Exec(
+    ExpandConstant('{sys}\schtasks.exe'),
+    '/End /TN "' + PFPUTaskName + '"',
+    '',
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    ResultCode
+  );
+
+  {
+    Give the server process a moment to release executable,
+    Python runtime, template and static files.
+  }
+  Sleep(2000);
+end;
 
 function GetPFPUDataRoot(): String;
 begin
@@ -122,6 +150,15 @@ begin
       False
     );
   end;
+end;
+
+function PrepareToInstall(
+  var NeedsRestart: Boolean
+): String;
+begin
+  Result := '';
+
+  StopExistingPFPUServer();
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
