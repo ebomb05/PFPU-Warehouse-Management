@@ -6,6 +6,22 @@
 
     <title>PFPU Warehouse Manager</title>
 
+    <link
+        rel="icon"
+        type="image/x-icon"
+        href="/static/branding/favicon.ico"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="/static/branding/apple-touch-icon.png"
+    >
+
+    <meta
+        name="theme-color"
+        content="#111827"
+    >
+
     <link rel="stylesheet" href="/static/style.css?v=6.2e">
 </head>
 
@@ -14,8 +30,15 @@
 <aside>
 
     <div class="sidebar-brand">
-        <h1>PFPU</h1>
+
+        <img
+            src="/static/branding/pfpu_logo.png"
+            alt="Power Factory Productions"
+            class="sidebar-brand-logo"
+        >
+
         <small>Warehouse Manager</small>
+
     </div>
 
     {% if request.session.get("user_id") %}
