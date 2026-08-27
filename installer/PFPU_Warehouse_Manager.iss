@@ -25,6 +25,8 @@ ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayName={#MyAppName}
 
 WizardStyle=modern
+SetupIconFile=branding\PFPU.ico
+UninstallDisplayIcon={app}\PFPUWarehouseServer.exe
 
 SetupLogging=yes
 
@@ -42,8 +44,8 @@ Source: "..\dist\PFPUWarehouseServer\*"; DestDir: "{app}"; Flags: ignoreversion 
 Source: "..\install_pfpu_startup.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\PFPU Warehouse Manager"; Filename: "http://127.0.0.1:8000"; IconFilename: "{app}\PFPUWarehouseServer.exe"
-Name: "{commondesktop}\PFPU Warehouse Manager"; Filename: "http://127.0.0.1:8000"; IconFilename: "{app}\PFPUWarehouseServer.exe"
+Name: "{group}\PFPU Warehouse Manager"; Filename: "{sys}\explorer.exe"; Parameters: "http://127.0.0.1:8000"; IconFilename: "{app}\PFPUWarehouseServer.exe"
+Name: "{commondesktop}\PFPU Warehouse Manager"; Filename: "{sys}\explorer.exe"; Parameters: "http://127.0.0.1:8000"; IconFilename: "{app}\PFPUWarehouseServer.exe"
 
 [Run]
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\install_pfpu_startup.ps1"""; Flags: runhidden waituntilterminated
