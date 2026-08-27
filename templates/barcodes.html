@@ -1,1 +1,39 @@
-{% extends 'base.html' %}{% block content %}<header><h2>Barcode Print Queue</h2><p>Generated asset barcodes. Use browser print for quick test labels.</p></header><section class="labels">{% for r in rows %}<div class="label"><img src="/barcodes/{{r.svg_file}}"><strong>{{r.asset_id}}</strong><small>{{r.description}}</small></div>{% endfor %}</section>{% endblock %}
+{% extends 'base.html' %}
+
+{% block content %}
+
+<header>
+    <h2>QR Label Print Queue</h2>
+
+    <p>
+        Generated asset QR labels.
+        Use browser print for quick test labels.
+    </p>
+</header>
+
+<section class="labels">
+
+    {% for r in rows %}
+
+    <div class="label">
+
+        <img
+            src="/barcodes/{{ r.svg_file }}"
+            alt="QR label for {{ r.asset_id }}"
+        >
+
+        <strong>
+            {{ r.asset_id }}
+        </strong>
+
+        <small>
+            {{ r.description }}
+        </small>
+
+    </div>
+
+    {% endfor %}
+
+</section>
+
+{% endblock %}
