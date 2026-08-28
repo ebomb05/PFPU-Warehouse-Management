@@ -1,0 +1,118 @@
+﻿<!doctype html>
+
+<html>
+
+<head>
+
+    <meta charset="utf-8">
+
+    <title>
+        Location QR - {{ location["code"] }}
+    </title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: white;
+            color: black;
+        }
+
+        .print-toolbar {
+            margin-bottom: 20px;
+        }
+
+        .print-toolbar button,
+        .print-toolbar a {
+            display: inline-block;
+            padding: 10px 16px;
+            margin-right: 10px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .label {
+            border: 1px solid #bbb;
+            padding: 12px;
+            width: fit-content;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        .label img {
+            display: block;
+            width: 100%;
+            max-width: 520px;
+            height: auto;
+        }
+
+        .location-code {
+            margin-top: 8px;
+            font-weight: bold;
+            font-size: 22px;
+        }
+
+        .location-name {
+            margin-top: 4px;
+            font-size: 15px;
+        }
+
+        @media print {
+
+            body {
+                margin: 0;
+            }
+
+            .print-toolbar {
+                display: none;
+            }
+
+            .label {
+                border: none;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div class="print-toolbar">
+
+        <button
+            type="button"
+            onclick="window.print()"
+        >
+            Print Location Label
+        </button>
+
+        <a href="/locations/{{ location['id'] }}">
+            Back to Location
+        </a>
+
+    </div>
+
+
+    <div class="label">
+
+        <img
+            src="/locations/{{ location['id'] }}/qr"
+            alt="QR label for location {{ location['code'] }}"
+        >
+
+        <div class="location-code">
+            {{ location["code"] }}
+        </div>
+
+        <div class="location-name">
+            {{ location["name"] or "Warehouse Location" }}
+        </div>
+
+    </div>
+
+</body>
+
+</html>

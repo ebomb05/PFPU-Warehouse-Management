@@ -1,5 +1,4 @@
-from html import escape
-from pathlib import Path
+﻿from html import escape
 
 import qrcode
 from qrcode.constants import ERROR_CORRECT_H
@@ -7,18 +6,44 @@ from qrcode.constants import ERROR_CORRECT_H
 from ..config import BARCODE_DIR
 
 
-def make_barcode_svg(value: str) -> str:
+def make_barcode_svg(
+    value: str,
+    *,
+    display_value: str | None = None,
+    filename_value: str | None = None,
+    subtitle: str = "Power Factory Productions",
+) -> str:
     """
     Generate a durable PFPU QR label as an SVG file.
 
-    The QR payload is the stable asset identifier itself.
-    Existing PFPU scanning/database behavior remains unchanged.
+    value is the actual QR payload.
+
+    Optional display_value, filename_value, and subtitle parameters
+    allow other PFPU QR types to reuse the same QR engine.
+
+    Existing asset QR calls remain backward compatible.
     """
 
     value = value.strip()
 
     if not value:
         raise ValueError("QR value cannot be empty.")
+
+    if display_value is None:
+        display_value = value
+
+    if filename_value is None:
+        filename_value = value
+
+    display_value = display_value.strip()
+    filename_value = filename_value.strip()
+    subtitle = subtitle.strip()
+
+    if not display_value:
+        display_value = value
+
+    if not filename_value:
+        raise ValueError("QR filename value cannot be empty.")
 
     BARCODE_DIR.mkdir(
         parents=True,
@@ -40,13 +65,14 @@ def make_barcode_svg(value: str) -> str:
     module_size = 8
     qr_width = len(matrix) * module_size
 
-    label_width = qr_width + 220
+    label_width = qr_width + 260
     label_height = max(
         qr_width + 20,
         150,
     )
 
-    safe_value = escape(value)
+    safe_display_value = escape(display_value)
+    safe_subtitle = escape(subtitle)
 
     svg_parts = [
         (
@@ -96,7 +122,7 @@ def make_barcode_svg(value: str) -> str:
                 f'font-size="22" '
                 f'font-family="Arial, sans-serif" '
                 f'font-weight="bold">'
-                f'{safe_value}'
+                f'{safe_display_value}'
                 f'</text>'
             ),
             (
@@ -105,14 +131,14 @@ def make_barcode_svg(value: str) -> str:
                 f'y="92" '
                 f'font-size="15" '
                 f'font-family="Arial, sans-serif">'
-                f'Power Factory Productions'
+                f'{safe_subtitle}'
                 f'</text>'
             ),
             "</svg>",
         ]
     )
 
-    filename = f"{value}.svg"
+    filename = f"{filename_value}.svg"
 
     path = BARCODE_DIR / filename
 
@@ -122,3 +148,35 @@ def make_barcode_svg(value: str) -> str:
     )
 
     return filename
+
+
+def make_location_qr_svg(
+    location_code: str,
+    location_name: str = "",
+) -> str:
+    """
+    Generate a PFPU warehouse location QR label.
+
+    Location QR payloads use the PFPU:LOCATION namespace so scanner
+    workflows can distinguish locations from normal asset identifiers.
+    """
+
+    location_code = location_code.strip().upper()
+    location_name = location_name.strip()
+
+    if not location_code:
+        raise ValueError("Location code cannot be empty.")
+
+    payload = f"PFPU:LOCATION:{location_code}"
+
+    if location_name:
+        subtitle = location_name
+    else:
+        subtitle = "Power Factory Productions"
+
+    return make_barcode_svg(
+        payload,
+        display_value=location_code,
+        filename_value=f"LOCATION-{location_code}",
+        subtitle=subtitle,
+    )

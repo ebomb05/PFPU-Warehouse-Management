@@ -1,10 +1,12 @@
 import re
 
 from fastapi import APIRouter, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
+from ..config import BARCODE_DIR
 from ..database import connect
 from ..services.auth_service import request_has_permission
+from ..services.barcode_service import make_location_qr_svg
 
 router = APIRouter()
 
@@ -203,6 +205,11 @@ def location_detail(
 
     con.close()
 
+    location_qr_filename = make_location_qr_svg(
+        location["code"],
+        location["name"] or "",
+    )
+
     return request.app.state.templates.TemplateResponse(
         "location_detail.html",
         {
@@ -210,10 +217,97 @@ def location_detail(
             "location": location,
             "assets": assets,
             "asset_count": len(assets),
+            "location_qr_filename": location_qr_filename,
             "message": message,
         },
     )
 
+
+@router.get("/locations/{location_id}/qr/print", response_class=HTMLResponse)
+def location_qr_print(
+    request: Request,
+    location_id: int,
+):
+    if not request_has_permission(
+        request,
+        "locations.view",
+    ):
+        return deny_access()
+
+    con = connect()
+
+    location = con.execute(
+        """
+        SELECT *
+        FROM warehouse_locations
+        WHERE id = ?
+        """,
+        (location_id,),
+    ).fetchone()
+
+    con.close()
+
+    if not location:
+        return RedirectResponse(
+            "/locations?message=Location not found",
+            status_code=303,
+        )
+
+    make_location_qr_svg(
+        location["code"],
+        location["name"] or "",
+    )
+
+    return request.app.state.templates.TemplateResponse(
+        "location_label_print.html",
+        {
+            "request": request,
+            "location": location,
+        },
+    )
+
+@router.get("/locations/{location_id}/qr")
+def location_qr(
+    request: Request,
+    location_id: int,
+):
+    if not request_has_permission(
+        request,
+        "locations.view",
+    ):
+        return deny_access()
+
+    con = connect()
+
+    location = con.execute(
+        """
+        SELECT *
+        FROM warehouse_locations
+        WHERE id = ?
+        """,
+        (location_id,),
+    ).fetchone()
+
+    con.close()
+
+    if not location:
+        return RedirectResponse(
+            "/locations?message=Location not found",
+            status_code=303,
+        )
+
+    filename = make_location_qr_svg(
+        location["code"],
+        location["name"] or "",
+    )
+
+    qr_path = BARCODE_DIR / filename
+
+    return FileResponse(
+        qr_path,
+        media_type="image/svg+xml",
+        filename=filename,
+    )
 
 @router.post("/locations/{location_id}/update")
 def update_location(

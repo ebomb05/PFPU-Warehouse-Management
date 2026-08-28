@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block content %}
 
@@ -9,7 +9,7 @@
     </div>
 
     <div>
-        <a href="/locations">← Back to Locations</a>
+        <a href="/locations">â† Back to Locations</a>
     </div>
 </div>
 
@@ -53,6 +53,26 @@
 
 </div>
 
+
+<div style="margin-top: 18px; margin-bottom: 18px;">
+
+    <a
+        href="/locations/{{ location['id'] }}/qr"
+        target="_blank"
+    >
+        View Location QR
+    </a>
+
+    &nbsp;&nbsp;
+
+    <a
+        href="/locations/{{ location['id'] }}/qr/print"
+        target="_blank"
+    >
+        Print Location QR
+    </a>
+
+</div>
 
 {% if request.state.can("locations.manage") %}
 
