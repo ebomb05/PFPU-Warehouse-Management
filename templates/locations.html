@@ -12,6 +12,26 @@
 </div>
 
 
+{% if request.state.can("assets.move") %}
+
+<div class="card">
+    <h2>Rapid Location Assignment</h2>
+
+    <p>
+        Scan a location QR, then continuously scan assets
+        to assign them to that location.
+    </p>
+
+    <a
+        href="/location-assignment"
+        class="button"
+    >
+        Open Rapid Location Assignment
+    </a>
+</div>
+
+{% endif %}
+
 {% if message %}
 <div class="card">
     <strong>{{ message }}</strong>

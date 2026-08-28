@@ -1,10 +1,12 @@
-import re
+﻿import re
+from urllib.parse import quote
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
 from ..config import BARCODE_DIR
 from ..database import connect
+from ..services.asset_service import move_asset
 from ..services.auth_service import request_has_permission
 from ..services.barcode_service import make_location_qr_svg
 
@@ -222,6 +224,206 @@ def location_detail(
         },
     )
 
+
+@router.get("/location-assignment", response_class=HTMLResponse)
+def rapid_location_assignment(
+    request: Request,
+    message: str = "",
+    result: str = "",
+):
+    if not request_has_permission(
+        request,
+        "assets.move",
+    ):
+        return deny_access()
+
+    selected_location = None
+
+    selected_location_id = request.session.get(
+        "rapid_location_id"
+    )
+
+    if selected_location_id:
+        con = connect()
+
+        selected_location = con.execute(
+            """
+            SELECT
+                id,
+                code,
+                name,
+                location_type,
+                active
+            FROM warehouse_locations
+            WHERE id = ?
+            """,
+            (selected_location_id,),
+        ).fetchone()
+
+        con.close()
+
+        if (
+            not selected_location
+            or not selected_location["active"]
+        ):
+            request.session.pop(
+                "rapid_location_id",
+                None,
+            )
+            selected_location = None
+
+    return request.app.state.templates.TemplateResponse(
+        "location_assign.html",
+        {
+            "request": request,
+            "selected_location": selected_location,
+            "message": message,
+            "result": result,
+        },
+    )
+
+
+@router.post("/location-assignment")
+def rapid_location_assignment_scan(
+    request: Request,
+    barcode_value: str = Form(...),
+):
+    if not request_has_permission(
+        request,
+        "assets.move",
+    ):
+        return deny_access()
+
+    barcode_value = barcode_value.strip()
+
+    if not barcode_value:
+        return RedirectResponse(
+            "/location-assignment?result=error&message="
+            + quote("Scan a Location QR or Asset QR."),
+            status_code=303,
+        )
+
+    location_prefix = "PFPU:LOCATION:"
+
+    # ---------------------------------------------------------
+    # LOCATION QR
+    # ---------------------------------------------------------
+
+    if barcode_value.upper().startswith(location_prefix):
+
+        location_code = barcode_value[
+            len(location_prefix):
+        ].strip()
+
+        con = connect()
+
+        location = con.execute(
+            """
+            SELECT
+                id,
+                code,
+                name,
+                location_type,
+                active
+            FROM warehouse_locations
+            WHERE UPPER(code) = UPPER(?)
+            """,
+            (location_code,),
+        ).fetchone()
+
+        con.close()
+
+        if not location:
+            return RedirectResponse(
+                "/location-assignment?result=error&message="
+                + quote(
+                    f"Location {location_code} was not found."
+                ),
+                status_code=303,
+            )
+
+        if not location["active"]:
+            return RedirectResponse(
+                "/location-assignment?result=error&message="
+                + quote(
+                    f"Location {location['code']} is retired."
+                ),
+                status_code=303,
+            )
+
+        request.session["rapid_location_id"] = location["id"]
+
+        return RedirectResponse(
+            "/location-assignment?result=success&message="
+            + quote(
+                f"Target location set to {location['code']}."
+            ),
+            status_code=303,
+        )
+
+    # ---------------------------------------------------------
+    # ASSET QR / ASSET ID
+    # ---------------------------------------------------------
+
+    selected_location_id = request.session.get(
+        "rapid_location_id"
+    )
+
+    if not selected_location_id:
+        return RedirectResponse(
+            "/location-assignment?result=error&message="
+            + quote(
+                "Scan a Location QR before scanning assets."
+            ),
+            status_code=303,
+        )
+
+    con = connect()
+
+    asset = con.execute(
+        """
+        SELECT
+            id,
+            asset_id
+        FROM assets
+        WHERE barcode_value = ?
+           OR asset_id = ?
+        """,
+        (
+            barcode_value,
+            barcode_value,
+        ),
+    ).fetchone()
+
+    con.close()
+
+    if not asset:
+        return RedirectResponse(
+            "/location-assignment?result=error&message="
+            + quote(
+                f"Asset / QR not found: {barcode_value}"
+            ),
+            status_code=303,
+        )
+
+    move_result = move_asset(
+        asset_id=asset["id"],
+        to_location_id=selected_location_id,
+        action="Rapid Location Assignment",
+        user_id=request.state.user_id,
+    )
+
+    result_type = (
+        "success"
+        if move_result["success"]
+        else "error"
+    )
+
+    return RedirectResponse(
+        f"/location-assignment?result={result_type}&message="
+        + quote(move_result["message"]),
+        status_code=303,
+    )
 
 @router.get("/locations/{location_id}/qr/print", response_class=HTMLResponse)
 def location_qr_print(

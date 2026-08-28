@@ -185,6 +185,10 @@ def cleanup_old_backups() -> int:
     """
     Keep only the newest configured number of PFPU backups.
 
+    A backup that cannot be removed because it is locked or
+    protected by Windows is skipped so backup cleanup can
+    never prevent PFPU from starting.
+
     Returns the number of old backup files removed.
     """
 
@@ -206,8 +210,14 @@ def cleanup_old_backups() -> int:
     for backup_path in backups[
         BACKUP_RETENTION_COUNT:
     ]:
-        backup_path.unlink()
-        removed += 1
+        try:
+            backup_path.unlink()
+            removed += 1
+        except (PermissionError, OSError) as exc:
+            print(
+                "[PFPU] WARNING: Could not remove old backup "
+                f"{backup_path.name}: {exc}"
+            )
 
     return removed
 

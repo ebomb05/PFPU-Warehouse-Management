@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Rapid Location Assignment</h1>
+        <p>
+            Scan a location QR, then continuously scan assets
+            into that location.
+        </p>
+    </div>
+
+    <div>
+        <a href="/locations">
+            Back to Locations
+        </a>
+    </div>
+</div>
+
+
+{% if message %}
+
+<div
+    class="card"
+    style="
+        {% if result == 'success' %}
+            border-left: 6px solid #2e8b57;
+        {% elif result == 'error' %}
+            border-left: 6px solid #b22222;
+        {% else %}
+            border-left: 6px solid #555;
+        {% endif %}
+    "
+>
+    <strong>
+        {% if result == "success" %}
+            &#10003;
+        {% elif result == "error" %}
+            &#9888;
+        {% endif %}
+
+        {{ message }}
+    </strong>
+</div>
+
+{% endif %}
+
+
+<div class="card">
+
+    <h2>Target Location</h2>
+
+    {% if selected_location %}
+
+        <div
+            style="
+                padding: 18px;
+                border: 2px solid #2e8b57;
+                border-radius: 8px;
+                margin-top: 12px;
+            "
+        >
+
+            <div
+                style="
+                    font-size: 30px;
+                    font-weight: bold;
+                "
+            >
+                {{ selected_location["code"] }}
+            </div>
+
+            <div
+                style="
+                    font-size: 18px;
+                    margin-top: 6px;
+                "
+            >
+                {{ selected_location["name"] or "Warehouse Location" }}
+            </div>
+
+            <div
+                style="
+                    margin-top: 8px;
+                    font-weight: bold;
+                "
+            >
+                READY FOR ASSETS
+            </div>
+
+        </div>
+
+    {% else %}
+
+        <div
+            style="
+                padding: 18px;
+                border: 2px solid #b22222;
+                border-radius: 8px;
+                margin-top: 12px;
+            "
+        >
+
+            <div
+                style="
+                    font-size: 22px;
+                    font-weight: bold;
+                "
+            >
+                NO LOCATION SELECTED
+            </div>
+
+            <div style="margin-top: 8px;">
+                Scan a PFPU Location QR first.
+            </div>
+
+        </div>
+
+    {% endif %}
+
+</div>
+
+
+<div class="card">
+
+    <h2>Scanner</h2>
+
+    <form
+        id="rapid-assign-form"
+        method="post"
+        action="/location-assignment"
+    >
+
+        <label for="rapid-scan-input">
+            Location QR / Asset QR
+        </label>
+
+        <input
+            id="rapid-scan-input"
+            name="barcode_value"
+            type="text"
+            class="scanbox"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            autofocus
+            required
+            placeholder="Ready to scan..."
+        >
+
+        <p>
+            {% if selected_location %}
+                Scan assets continuously, or scan another
+                Location QR to change the target.
+            {% else %}
+                Scan a Location QR to begin.
+            {% endif %}
+        </p>
+
+        <button
+            type="submit"
+            class="big"
+        >
+            Process Scan
+        </button>
+
+    </form>
+
+</div>
+
+
+<div class="card">
+
+    <h3>How This Mode Works</h3>
+
+    <p>
+        <strong>Location QR:</strong>
+        changes the current target location.
+    </p>
+
+    <p>
+        <strong>Asset QR:</strong>
+        moves the scanned asset to the selected target location.
+    </p>
+
+    <p>
+        The target remains selected until another Location QR
+        is scanned.
+    </p>
+
+</div>
+
+
+<script>
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const scanInput =
+            document.getElementById(
+                "rapid-scan-input"
+            );
+
+        if (!scanInput) {
+            return;
+        }
+
+        scanInput.value = "";
+        scanInput.focus();
+
+
+        // Keep scanner focus on the input when the worker
+        // is not intentionally interacting with another control.
+        document.addEventListener(
+            "click",
+            function (event) {
+
+                const interactive =
+                    event.target.closest(
+                        "a, button, input, select, textarea"
+                    );
+
+                if (!interactive) {
+                    scanInput.focus();
+                }
+            }
+        );
+
+
+        // Most hardware scanners send Enter after a scan.
+        // Prevent accidental duplicate submission if Enter
+        // is received again while the request is already leaving.
+        const form =
+            document.getElementById(
+                "rapid-assign-form"
+            );
+
+        let submitting = false;
+
+        if (form) {
+
+            form.addEventListener(
+                "submit",
+                function (event) {
+
+                    if (submitting) {
+                        event.preventDefault();
+                        return;
+                    }
+
+                    if (!scanInput.value.trim()) {
+                        event.preventDefault();
+                        scanInput.focus();
+                        return;
+                    }
+
+                    submitting = true;
+                }
+            );
+
+        }
+
+    }
+);
+</script>
+
+{% endblock %}
