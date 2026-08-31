@@ -123,6 +123,7 @@
 
         </select>
 
+        <div id="scan-job-fields">
 
         {% if
             request.state.can("scan.checkout")
@@ -157,46 +158,57 @@
 
         {% endif %}
 
+        </div>
 
-        {% if request.state.can("assets.move") %}
+        <div id="scan-location-fields">
 
-        <label>Destination Location</label>
+            {% if request.state.can("assets.move") %}
 
-        <select
-            name="to_location_id"
-            data-searchable="true"
-            data-search-placeholder="Search locations..."
-        >
+            <label>Destination Location</label>
 
-            <option value="">
-                Select destination
-            </option>
+            <select
+                name="to_location_id"
+                data-searchable="true"
+                data-search-placeholder="Search locations..."
+            >
 
-            {% for location in locations %}
+                <option value="">
+                    Select destination
+                </option>
 
-            <option value="{{ location['id'] }}">
-                {{ location["code"] }}
+                {% for location in locations %}
 
-                {% if location["name"] %}
-                    &mdash; {{ location["name"] }}
-                {% endif %}
+                <option value="{{ location['id'] }}">
+                    {{ location["code"] }}
 
-                ({{ location["location_type"] }})
-            </option>
+                    {% if location["name"] %}
+                        &mdash; {{ location["name"] }}
+                    {% endif %}
 
-            {% endfor %}
+                    ({{ location["location_type"] }})
+                </option>
 
-        </select>
+                {% endfor %}
 
-        {% endif %}
+            </select>
 
+            {% endif %}
 
-        <label>Notes / Repair Issue</label>
+        </div>
 
-        <input
-            name="notes"
-            placeholder="Optional notes"
-        >
+        <div id="scan-notes-fields">
+
+            <label id="scan-notes-label">
+                Notes
+            </label>
+
+            <input
+                name="notes"
+                id="scan-notes-input"
+                placeholder="Optional notes"
+            >
+
+        </div>
 
 
         <button
@@ -250,6 +262,31 @@ document.addEventListener("DOMContentLoaded", function () {
     const locationSelect =
         document.querySelector(
             'select[name="to_location_id"]'
+        );
+
+    const jobFields =
+        document.getElementById(
+            "scan-job-fields"
+        );
+
+    const locationFields =
+        document.getElementById(
+            "scan-location-fields"
+        );
+
+    const notesFields =
+        document.getElementById(
+            "scan-notes-fields"
+        );
+
+    const notesLabel =
+        document.getElementById(
+            "scan-notes-label"
+        );
+
+    const notesInput =
+        document.getElementById(
+            "scan-notes-input"
         );
 
 
@@ -340,6 +377,65 @@ document.addEventListener("DOMContentLoaded", function () {
         "pfpu_scan_location"
     );
 
+    // -----------------------------------------------------
+    // SHOW FIELDS NEEDED FOR THE SELECTED ACTION
+    // -----------------------------------------------------
+
+    function updateActionFields() {
+
+        if (!actionSelect) {
+            return;
+        }
+
+        const action = actionSelect.value;
+
+        if (jobFields) {
+            jobFields.style.display =
+                action === "repair"
+                    ? ""
+                    : "none";
+        }
+
+        if (locationFields) {
+            locationFields.style.display =
+                action === "move"
+                    ? ""
+                    : "none";
+        }
+
+        if (notesFields) {
+            notesFields.style.display =
+                action === "move"
+                || action === "repair"
+                    ? ""
+                    : "none";
+        }
+
+        if (notesLabel) {
+            notesLabel.textContent =
+                action === "repair"
+                    ? "Repair Issue / Notes"
+                    : "Movement Notes";
+        }
+
+        if (notesInput) {
+            notesInput.placeholder =
+                action === "repair"
+                    ? "Describe the repair issue"
+                    : "Optional movement notes";
+        }
+    }
+
+
+    if (actionSelect) {
+
+        actionSelect.addEventListener(
+            "change",
+            updateActionFields
+        );
+
+        updateActionFields();
+    }
 
     // -----------------------------------------------------
     // PREPARE FOR NEXT SCAN
