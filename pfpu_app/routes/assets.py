@@ -160,10 +160,130 @@ def move_asset_route(
         to_location_id=location_id,
         action="Manual Move",
         notes=notes,
+        user_id=request.state.user_id,
     )
 
     return RedirectResponse(
         "/assets?message="
         + quote(result["message"]),
         status_code=303,
+    )
+
+@router.get("/assets/{asset_db_id}", response_class=HTMLResponse)
+def asset_detail(
+    request: Request,
+    asset_db_id: int,
+):
+    if not request_has_permission(
+        request,
+        "inventory.view",
+    ):
+        return deny_access()
+
+    con = connect()
+
+    asset = con.execute(
+        """
+        SELECT
+            a.*,
+            wl.code AS location_code,
+            wl.name AS location_name,
+            wl.location_type,
+            j.job_number,
+            j.customer AS job_customer,
+            j.event_name AS job_event_name,
+            j.status AS job_status
+        FROM assets a
+        LEFT JOIN warehouse_locations wl
+            ON wl.id = a.location_id
+        LEFT JOIN jobs j
+            ON j.id = a.assigned_job_id
+        WHERE a.id = ?
+        """,
+        (asset_db_id,),
+    ).fetchone()
+
+    if not asset:
+        con.close()
+
+        return RedirectResponse(
+            "/assets?message="
+            + quote("Asset not found."),
+            status_code=303,
+        )
+
+    open_repair = con.execute(
+        """
+        SELECT
+            rr.*,
+            opened_user.display_name AS opened_by_name,
+            updated_user.display_name AS updated_by_name
+        FROM repair_records rr
+        LEFT JOIN users opened_user
+            ON opened_user.id = rr.opened_by
+        LEFT JOIN users updated_user
+            ON updated_user.id = rr.updated_by
+        WHERE rr.asset_id = ?
+          AND rr.closed_at IS NULL
+        ORDER BY rr.id DESC
+        LIMIT 1
+        """,
+        (asset_db_id,),
+    ).fetchone()
+
+    movement_history = con.execute(
+        """
+        SELECT
+            h.*,
+            old_location.code AS from_location_code,
+            old_location.name AS from_location_name,
+            new_location.code AS to_location_code,
+            new_location.name AS to_location_name,
+            u.display_name AS moved_by_name,
+            j.job_number AS history_job_number
+        FROM asset_location_history h
+        LEFT JOIN warehouse_locations old_location
+            ON old_location.id = h.from_location_id
+        LEFT JOIN warehouse_locations new_location
+            ON new_location.id = h.to_location_id
+        LEFT JOIN users u
+            ON u.id = h.user_id
+        LEFT JOIN jobs j
+            ON j.id = h.job_id
+        WHERE h.asset_id = ?
+        ORDER BY h.id DESC
+        LIMIT 20
+        """,
+        (asset_db_id,),
+    ).fetchall()
+
+    locations = con.execute(
+        """
+        SELECT
+            id,
+            code,
+            name,
+            location_type
+        FROM warehouse_locations
+        WHERE active = 1
+        ORDER BY
+            CASE
+                WHEN location_type = 'Shelf' THEN 0
+                ELSE 1
+            END,
+            code
+        """
+    ).fetchall()
+
+    con.close()
+
+    return request.app.state.templates.TemplateResponse(
+        "asset_detail.html",
+        {
+            "request": request,
+            "asset": asset,
+            "open_repair": open_repair,
+            "movement_history": movement_history,
+            "locations": locations,
+        },
     )

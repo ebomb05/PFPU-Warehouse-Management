@@ -74,6 +74,14 @@
             required
         >
 
+            {% if request.state.can("inventory.view") %}
+
+            <option value="inspect">
+                Inspect Asset
+            </option>
+
+            {% endif %}
+
             {% if request.state.can("assets.move") %}
 
             <option value="move">

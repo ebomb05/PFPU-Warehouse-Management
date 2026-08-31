@@ -29,6 +29,7 @@ def scan_page(
     allowed = any(
         permission in permissions
         for permission in (
+            "inventory.view",
             "assets.move",
             "scan.checkout",
             "scan.checkin",
@@ -117,7 +118,14 @@ def scan(
     # PERMISSION CHECK FOR REQUESTED ACTION
     # ---------------------------------------------------------
 
-    if action == "move":
+    if action == "inspect":
+        if not request_has_permission(
+            request,
+            "inventory.view",
+        ):
+            return deny_access()
+
+    elif action == "move":
         if not request_has_permission(
             request,
             "assets.move",
@@ -189,6 +197,16 @@ def scan(
         )
 
     # ---------------------------------------------------------
+    # INSPECT ASSET
+    # ---------------------------------------------------------
+
+    if action == "inspect":
+        return RedirectResponse(
+            f"/assets/{asset['id']}",
+            status_code=303,
+        )
+
+    # ---------------------------------------------------------
     # MANUAL LOCATION MOVE
     # ---------------------------------------------------------
 
@@ -206,6 +224,7 @@ def scan(
             to_location_id=to_location_id_value,
             action="Manual Move",
             notes=notes,
+            user_id=request.state.user_id,
         )
 
         result_type = (

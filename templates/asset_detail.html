@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>Asset Detail</h2>
+
+        <p>
+            View asset information, current assignment,
+            repair status, and recent movement history.
+        </p>
+    </div>
+
+    <div style="
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    ">
+        <a href="/scan">
+            Back to Scan Station
+        </a>
+
+        <a href="/assets">
+            Back to Assets
+        </a>
+    </div>
+
+
+<section class="panel">
+
+    <div style="
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+        flex-wrap: wrap;
+    ">
+
+        <div>
+            <div style="
+                font-size: 0.85rem;
+                opacity: 0.7;
+                margin-bottom: 4px;
+            ">
+                ASSET
+            </div>
+
+            <h2 style="margin: 0;">
+                {{ asset["asset_id"] }}
+            </h2>
+
+            <h3 style="margin-top: 8px;">
+                {{ asset["description"] or "No description" }}
+            </h3>
+        </div>
+
+        <div>
+            <strong>
+                {{ asset["status"] or "Unknown" }}
+            </strong>
+        </div>
+
+    </div>
+
+
+    <hr>
+
+
+    <div style="
+        display: grid;
+        grid-template-columns:
+            repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+    ">
+
+        <div>
+            <strong>Category</strong>
+            <div>
+                {{ asset["category"] or "Not specified" }}
+            </div>
+        </div>
+
+        <div>
+            <strong>Serial Number</strong>
+            <div>
+                {{ asset["serial_number"] or "Not recorded" }}
+            </div>
+        </div>
+
+        <div>
+            <strong>Current Location</strong>
+
+            <div>
+                {% if asset["location_code"] %}
+
+                    {{ asset["location_code"] }}
+
+                    {% if asset["location_name"] %}
+                        &mdash; {{ asset["location_name"] }}
+                    {% endif %}
+
+                {% else %}
+
+                    {{ asset["current_location"] or "Not assigned" }}
+
+                {% endif %}
+            </div>
+        </div>
+
+        <div>
+            <strong>Location Type</strong>
+            <div>
+                {{ asset["location_type"] or "Not specified" }}
+            </div>
+        </div>
+
+    </div>
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Job Assignment</h3>
+
+    {% if asset["assigned_job_id"] %}
+
+        <p>
+            <strong>
+                {{ asset["job_number"] }}
+            </strong>
+
+            {% if asset["job_customer"] %}
+                &mdash; {{ asset["job_customer"] }}
+            {% endif %}
+        </p>
+
+        {% if asset["job_event_name"] %}
+            <p>
+                Event:
+                {{ asset["job_event_name"] }}
+            </p>
+        {% endif %}
+
+        <p>
+            Status:
+            {{ asset["job_status"] or "Unknown" }}
+        </p>
+
+    {% else %}
+
+        <p>
+            This asset is not currently assigned to a job.
+        </p>
+
+    {% endif %}
+
+</section>
+
+
+<section class="panel">
+
+    <h3>Repair Status</h3>
+
+    {% if open_repair %}
+
+        <div class="scan-feedback error">
+
+            <div class="scan-feedback-icon">
+                &#9888;
+            </div>
+
+            <div class="scan-feedback-message">
+                <strong>
+                    {{ open_repair["status"] }}
+                </strong>
+
+                {% if open_repair["issue"] %}
+                    &mdash; {{ open_repair["issue"] }}
+                {% endif %}
+            </div>
+
+        </div>
+
+        {% if open_repair["notes"] %}
+            <p>
+                <strong>Notes:</strong>
+                {{ open_repair["notes"] }}
+            </p>
+        {% endif %}
+
+        {% if open_repair["parts_needed"] %}
+            <p>
+                <strong>Parts Needed:</strong>
+                {{ open_repair["parts_needed"] }}
+            </p>
+        {% endif %}
+
+        <p>
+            <strong>Opened:</strong>
+            {{ open_repair["opened_at"] }}
+
+            {% if open_repair["opened_by_name"] %}
+                by {{ open_repair["opened_by_name"] }}
+            {% endif %}
+        </p>
+
+    {% else %}
+
+        <p>
+            No open repair record.
+        </p>
+
+    {% endif %}
+
+</section>
+
+
+{% if request.state.can("assets.move") %}
+
+<section class="panel">
+
+    <h3>Move Asset</h3>
+
+    <form
+        method="post"
+        action="/assets/{{ asset['id'] }}/move"
+    >
+
+        <label>Destination Location</label>
+
+        <select
+            name="location_id"
+            data-searchable="true"
+            data-search-placeholder="Search locations..."
+            required
+        >
+
+            <option value="">
+                Select destination
+            </option>
+
+            {% for location in locations %}
+
+                <option value="{{ location['id'] }}">
+                    {{ location["code"] }}
+
+                    {% if location["name"] %}
+                        &mdash; {{ location["name"] }}
+                    {% endif %}
+
+                    ({{ location["location_type"] }})
+                </option>
+
+            {% endfor %}
+
+        </select>
+
+
+        <label>Notes</label>
+
+        <input
+            name="notes"
+            placeholder="Optional movement notes"
+        >
+
+
+        <button
+            type="submit"
+            class="big"
+        >
+            Move Asset
+        </button>
+
+    </form>
+
+</section>
+
+{% endif %}
+
+
+<section class="panel">
+
+    <h3>Recent Movement</h3>
+
+    {% if movement_history %}
+
+        <div style="overflow-x: auto;">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Date / Time</th>
+                        <th>Action</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Employee</th>
+                        <th>Job</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for movement in movement_history %}
+
+                    <tr>
+
+                        <td>
+                            {{ movement["moved_at"] }}
+                        </td>
+
+                        <td>
+                            {{ movement["action"] }}
+                        </td>
+
+                        <td>
+                            {{ movement["from_location_code"] or "—" }}
+                        </td>
+
+                        <td>
+                            {{ movement["to_location_code"] or "—" }}
+                        </td>
+
+                        <td>
+                            {{ movement["moved_by_name"] or "Not recorded" }}
+                        </td>
+
+                        <td>
+                            {{ movement["history_job_number"] or "—" }}
+                        </td>
+
+                        <td>
+                            {{ movement["notes"] or "—" }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    {% else %}
+
+        <p>
+            No movement history recorded for this asset.
+        </p>
+
+    {% endif %}
+
+</section>
+
+
+<section class="panel">
+
+    <strong>QR / Barcode Value</strong>
+
+    <p>
+        {{ asset["barcode_value"] }}
+    </p>
+
+</section>
+
+{% endblock %}
