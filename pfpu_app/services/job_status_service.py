@@ -12,7 +12,7 @@ def refresh_job_status(job_id: int):
     - Returned / Inspection assets -> Returning
     - Loaded assets -> Ready / Loaded
     - Reserved / Prep assets -> Pulling
-    - No assets assigned + prior workflow activity -> Completed
+    - No assets assigned + prior workflow activity -> Ready to Complete
     - Otherwise -> Planning
     """
 
@@ -37,13 +37,13 @@ def refresh_job_status(job_id: int):
             "message": "Job not found",
         }
 
-    if job["status"] == "Cancelled":
+    if job["status"] in ("Cancelled", "Completed"):
         con.close()
 
         return {
             "success": True,
-            "status": "Cancelled",
-            "previous_status": "Cancelled",
+            "status": job["status"],
+            "previous_status": job["status"],
         }
 
     counts = con.execute(
@@ -128,7 +128,7 @@ def refresh_job_status(job_id: int):
         new_status = "Pulling"
 
     elif assigned_count == 0 and workflow_history_count > 0:
-        new_status = "Completed"
+        new_status = "Ready to Complete"
 
     else:
         new_status = "Planning"

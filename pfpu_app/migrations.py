@@ -277,6 +277,7 @@ def run_migrations(con):
         default_locations = [
             ("WAREHOUSE", "Warehouse", "Warehouse"),
             ("PREP", "Prep Area", "Prep"),
+            ("INSPECTION", "Return Inspection", "Inspection"),
             ("REPAIR", "Repair", "Repair"),
             ("LOST-FOUND", "Lost / Found", "Lost/Found"),
             ("TRUCK-1", "Truck 1", "Vehicle"),

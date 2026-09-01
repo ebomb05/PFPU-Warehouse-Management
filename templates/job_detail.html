@@ -378,6 +378,185 @@
 
 </section>
 
+{% if
+    request.state.can("scan.checkout")
+    or request.state.can("scan.checkin")
+%}
+
+<section class="panel">
+
+    <h3>Warehouse Operations</h3>
+
+    <p>
+        Use these workflows to move tracked equipment
+        through each stage of this job.
+    </p>
+{% if assigned_vehicles %}
+
+<div style="margin-bottom: 20px;">
+
+    <h4>Job Vehicles</h4>
+
+    <p>
+        {% for vehicle in assigned_vehicles %}
+            <strong>{{ vehicle["name"] }}</strong>
+            {% if vehicle["vehicle_number"] %}
+                &mdash; Unit {{ vehicle["vehicle_number"] }}
+            {% endif %}
+            {% if not loop.last %}
+                <br>
+            {% endif %}
+        {% endfor %}
+    </p>
+
+</div>
+
+{% else %}
+
+<div
+    class="scan-feedback error"
+    style="margin-bottom: 20px;"
+>
+    <strong>No vehicle assigned.</strong>
+    Assign a vehicle before loading equipment.
+</div>
+
+{% endif %}
+
+
+{% if request.state.can("jobs.edit") and available_vehicles %}
+
+<div style="margin-bottom: 24px;">
+
+    <h4>
+        {% if assigned_vehicles %}
+            Add Another Vehicle
+        {% else %}
+            Assign Vehicle
+        {% endif %}
+    </h4>
+
+    <form
+        method="post"
+        action="/jobs/{{ job['id'] }}/vehicles/assign"
+        class="rowform"
+    >
+
+        <select
+            name="vehicle_id"
+            required
+        >
+            <option value="">
+                Select vehicle...
+            </option>
+
+            {% for vehicle in available_vehicles %}
+
+            <option value="{{ vehicle['id'] }}">
+                {{ vehicle["name"] }}
+                {% if vehicle["vehicle_number"] %}
+                    &mdash; Unit {{ vehicle["vehicle_number"] }}
+                {% endif %}
+                &mdash; {{ vehicle["location_code"] }}
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+        <button type="submit">
+            Assign Vehicle
+        </button>
+
+    </form>
+
+</div>
+
+{% endif %}
+    <div class="form-grid">
+
+        {% if request.state.can("scan.checkout") %}
+
+        <div>
+            <h4>1. Pull / PREP</h4>
+
+            <p>
+                Pull required equipment from warehouse storage
+                and reserve it for this job.
+            </p>
+
+            <a
+                href="/jobs/{{ job['id'] }}/pull"
+                class="button"
+            >
+                Pull / PREP Equipment
+            </a>
+        </div>
+
+
+        <div>
+            <h4>2. Load Vehicle</h4>
+
+            <p>
+                Scan PREP equipment onto an assigned
+                job vehicle.
+            </p>
+
+            <a
+                href="/jobs/{{ job['id'] }}/load"
+                class="button"
+            >
+                Load Vehicle
+            </a>
+        </div>
+
+
+        <div>
+            <h4>3. Dispatch</h4>
+
+            <p>
+                Dispatch loaded equipment from the vehicle
+                to the job site.
+            </p>
+
+            <a
+                href="/jobs/{{ job['id'] }}/dispatch"
+                class="button"
+            >
+                Dispatch Equipment
+            </a>
+        </div>
+
+        {% endif %}
+
+
+        {% if request.state.can("scan.checkin") %}
+
+        <div>
+            <h4>4. Return</h4>
+
+            <p>
+                Return equipment from the job site to PREP
+                for inspection and routing.
+            </p>
+
+            <a
+                href="/jobs/{{ job['id'] }}/return"
+                class="button"
+            >
+                Return Equipment
+            </a>
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</section>
+
+{% endif %}
+
+
 
 <section class="panel">
 

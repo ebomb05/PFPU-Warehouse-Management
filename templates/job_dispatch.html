@@ -142,16 +142,25 @@
 
 </section>
 
-
 {% if request.state.can("scan.checkout") %}
 
 <section class="panel">
 
-    <h3>Scan Equipment to Job Site</h3>
+    <h3>Dispatch Truck</h3>
+
+    {% if loaded_assets %}
 
     <p>
-        Scan equipment currently loaded on
-        <strong>{{ selected_vehicle["name"] }}</strong>.
+        <strong>{{ selected_vehicle["name"] }}</strong>
+        currently has
+        <strong>{{ loaded_assets|length }}</strong>
+        tracked asset(s) loaded for this job.
+    </p>
+
+    <p>
+        Dispatching the truck will mark all equipment currently
+        loaded on this vehicle as checked out to the job site.
+        No additional equipment scanning is required.
     </p>
 
     <form
@@ -165,31 +174,31 @@
             value="{{ selected_vehicle['id'] }}"
         >
 
-        <input
-            type="text"
-            name="barcode_value"
-            id="barcode-input"
-            class="scanbox"
-            placeholder="Scan QR / Asset ID"
-            autocomplete="off"
-            autofocus
-            required
-            style="
-                width: 100%;
-                box-sizing: border-box;
-                margin-bottom: 12px;
-            "
-        >
-
         <button
             type="submit"
             class="big"
             style="width: 100%;"
         >
-            Dispatch to JOB-SITE
+            Dispatch {{ selected_vehicle["name"] }} to Job Site
         </button>
 
     </form>
+
+    {% else %}
+
+    <p>
+        No loaded equipment is waiting to be dispatched
+        from this vehicle.
+    </p>
+
+    <a
+        href="/jobs/{{ job['id'] }}"
+        class="button"
+    >
+        Back to Job
+    </a>
+
+    {% endif %}
 
 </section>
 

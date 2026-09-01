@@ -201,3 +201,98 @@ def dispatch_asset_to_job_site(
         result["job_status"] = status_result["status"]
 
     return result
+
+def dispatch_vehicle_to_job_site(
+    job_id: int,
+    vehicle_id: int,
+    *,
+    user_id=None,
+    notes: str = "",
+):
+    """
+    Dispatch all tracked assets currently loaded on the selected
+    vehicle for this job.
+
+    Each asset is moved using the existing single-asset dispatch
+    workflow so normal validation, movement history, job assignment,
+    and status handling are preserved.
+    """
+
+    con = connect()
+
+    loaded_assets = con.execute(
+        """
+        SELECT
+            a.asset_id,
+            a.barcode_value
+        FROM assets a
+        JOIN vehicles v
+            ON v.warehouse_location_id = a.location_id
+        JOIN job_vehicles jv
+            ON jv.vehicle_id = v.id
+        WHERE jv.job_id = ?
+          AND v.id = ?
+          AND a.assigned_job_id = ?
+          AND a.status = 'Loaded'
+        ORDER BY a.asset_id
+        """,
+        (
+            job_id,
+            vehicle_id,
+            job_id,
+        ),
+    ).fetchall()
+
+    con.close()
+
+    if not loaded_assets:
+        return {
+            "success": False,
+            "message": "No loaded equipment is ready to dispatch on this vehicle.",
+            "dispatched_count": 0,
+        }
+
+    dispatched_count = 0
+    errors = []
+
+    for asset in loaded_assets:
+
+        barcode_value = (
+            asset["barcode_value"]
+            or asset["asset_id"]
+        )
+
+        result = dispatch_asset_to_job_site(
+            job_id,
+            vehicle_id,
+            barcode_value,
+            user_id=user_id,
+            notes=notes,
+        )
+
+        if result["success"]:
+            dispatched_count += 1
+        else:
+            errors.append(
+                f"{asset['asset_id']}: {result['message']}"
+            )
+
+    if errors:
+        return {
+            "success": False,
+            "message": (
+                f"Dispatched {dispatched_count} asset(s), "
+                f"but {len(errors)} asset(s) could not be dispatched. "
+                + " | ".join(errors)
+            ),
+            "dispatched_count": dispatched_count,
+        }
+
+    return {
+        "success": True,
+        "message": (
+            f"Vehicle dispatched successfully. "
+            f"{dispatched_count} tracked asset(s) moved to JOB-SITE."
+        ),
+        "dispatched_count": dispatched_count,
+    }

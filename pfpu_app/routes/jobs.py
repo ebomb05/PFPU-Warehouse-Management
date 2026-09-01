@@ -9,8 +9,14 @@ from ..services.inventory_service import availability
 from ..services.pull_list_service import build_pull_list
 from ..services.job_pull_service import pull_asset_to_prep
 from ..services.job_load_service import load_asset_to_vehicle
-from ..services.job_dispatch_service import dispatch_asset_to_job_site
-from ..services.job_return_service import return_asset_to_prep
+from ..services.job_dispatch_service import (
+    dispatch_asset_to_job_site,
+    dispatch_vehicle_to_job_site,
+)
+from ..services.job_return_service import (
+    return_asset_to_prep,
+    return_job_to_inspection,
+)
 from ..services.return_inspection_service import route_returned_asset
 from ..services.return_routing_service import find_next_job_for_item
 from ..services.auth_service import request_has_permission
@@ -777,6 +783,112 @@ def remove_vehicle_from_job(
         status_code=303,
     )
 
+# ---------------------------------------------------------
+# JOB PULL / PREP
+# ---------------------------------------------------------
+
+@router.get("/jobs/{job_id}/pull", response_class=HTMLResponse)
+def job_pull_page(
+    request: Request,
+    job_id: int,
+    message: str = "",
+    result: str = "",
+):
+    if not request_has_permission(
+        request,
+        "scan.checkout",
+    ):
+        return deny_access()
+
+    con = connect()
+
+    job = con.execute(
+        """
+        SELECT
+            j.*,
+            COALESCE(c.name, j.customer) AS customer_name
+        FROM jobs j
+        LEFT JOIN customers c
+            ON c.id = j.customer_id
+        WHERE j.id = ?
+        """,
+        (job_id,),
+    ).fetchone()
+
+    if not job:
+        con.close()
+
+        return RedirectResponse(
+            "/jobs?message=Job not found",
+            status_code=303,
+        )
+
+    total_pulled = con.execute(
+        """
+        SELECT COUNT(*)
+        FROM assets
+        WHERE assigned_job_id = ?
+          AND status = 'Reserved / Prep'
+        """,
+        (job_id,),
+    ).fetchone()[0]
+
+    con.close()
+
+    pull_list = build_pull_list(job_id)
+
+    total_needed = pull_list["total_required"]
+
+    return request.app.state.templates.TemplateResponse(
+        "job_pull.html",
+        {
+            "request": request,
+            "job": job,
+            "pull_list": pull_list,
+            "total_pulled": total_pulled,
+            "total_needed": total_needed,
+            "message": message,
+            "result": result,
+        },
+    )
+
+
+@router.post("/jobs/{job_id}/pull")
+def job_pull_scan(
+    request: Request,
+    job_id: int,
+    barcode_value: str = Form(...),
+):
+    if not request_has_permission(
+        request,
+        "scan.checkout",
+    ):
+        return deny_access()
+
+    pull_result = pull_asset_to_prep(
+        job_id,
+        barcode_value,
+        user_id=request.state.user_id,
+        notes="Job Pull / PREP scan",
+    )
+
+    result_type = (
+        "success"
+        if pull_result["success"]
+        else "error"
+    )
+
+    return RedirectResponse(
+        (
+            f"/jobs/{job_id}/pull"
+            f"?result={quote(result_type)}"
+            f"&message={quote(pull_result['message'])}"
+        ),
+        status_code=303,
+    )
+
+
+
 @router.get("/jobs/{job_id}/load", response_class=HTMLResponse)
 def job_load_page(
     request: Request,
@@ -1125,16 +1237,16 @@ def job_dispatch_page(
             "total_dispatchable": total_dispatchable,
             "total_dispatched": total_dispatched,
             "message": message,
+            "result": result,
         },
     )
 
 
 @router.post("/jobs/{job_id}/dispatch")
-def job_dispatch_scan(
+def job_dispatch_vehicle(
     request: Request,
     job_id: int,
     vehicle_id: int = Form(...),
-    barcode_value: str = Form(...),
 ):
     if not request_has_permission(
         request,
@@ -1142,38 +1254,28 @@ def job_dispatch_scan(
     ):
         return deny_access()
 
-    barcode_value = barcode_value.strip()
+    dispatch_result = dispatch_vehicle_to_job_site(
+        job_id,
+        vehicle_id,
+        user_id=request.state.user_id,
+        notes="Vehicle dispatched to job site",
+    )
 
-    if not barcode_value:
+    if not dispatch_result["success"]:
         return RedirectResponse(
             (
                 f"/jobs/{job_id}/dispatch"
                 f"?vehicle_id={vehicle_id}"
-                "&result=error&message="
-                + quote("Scan an asset QR / Asset ID.")
+                "&result=error"
+                f"&message={quote(dispatch_result['message'])}"
             ),
             status_code=303,
         )
 
-    dispatch_result = dispatch_asset_to_job_site(
-        job_id,
-        vehicle_id,
-        barcode_value,
-        notes="Job Dispatch scan",
-    )
-
-    result_type = (
-        "success"
-        if dispatch_result["success"]
-        else "error"
-    )
-
     return RedirectResponse(
         (
-            f"/jobs/{job_id}/dispatch"
-            f"?vehicle_id={vehicle_id}"
-            f"&result={result_type}"
-            f"&message={quote(dispatch_result['message'])}"
+            f"/jobs/{job_id}"
+            f"?message={quote(dispatch_result['message'])}"
         ),
         status_code=303,
     )
@@ -1184,6 +1286,7 @@ def job_return_page(
     job_id: int,
     message: str = "",
     result: str = "",
+    inspect_asset: str = "",
 ):
 
     if not request_has_permission(
@@ -1225,14 +1328,14 @@ def job_return_page(
         ("JOB-SITE",),
     ).fetchone()
 
-    prep = con.execute(
+    inspection = con.execute(
         """
         SELECT id
         FROM warehouse_locations
         WHERE code = ?
-          AND active = 1
+        AND active = 1
         """,
-        ("PREP",),
+        ("INSPECTION",),
     ).fetchone()
 
     site_assets = []
@@ -1260,7 +1363,7 @@ def job_return_page(
 
     returned_assets = []
 
-    if prep:
+    if inspection:
         returned_assets = con.execute(
             """
             SELECT
@@ -1277,14 +1380,56 @@ def job_return_page(
             """,
             (
                 job_id,
-                prep["id"],
+                inspection["id"],
             ),
         ).fetchall()
+
+    selected_asset = None
+
+    inspect_asset = inspect_asset.strip()
+
+    if inspect_asset and inspection:
+        selected_asset = con.execute(
+            """
+            SELECT
+                a.id,
+                a.asset_id,
+                a.barcode_value,
+                a.item_master_id,
+                a.description,
+                a.status
+            FROM assets a
+            WHERE a.assigned_job_id = ?
+              AND a.location_id = ?
+              AND a.status = 'Returned / Inspection'
+              AND (
+                    a.barcode_value = ?
+                    OR a.asset_id = ?
+                  )
+            """,
+            (
+                job_id,
+                inspection["id"],
+                inspect_asset,
+                inspect_asset,
+            ),
+        ).fetchone()
 
     total_expected = len(site_assets) + len(returned_assets)
     total_returned = len(returned_assets)
 
     con.close()
+
+    selected_info = None
+
+    if selected_asset:
+        selected_info = {
+            "asset": selected_asset,
+            "recommendation": find_next_job_for_item(
+                current_job_id=job_id,
+                item_master_id=selected_asset["item_master_id"],
+            ),
+        }
 
     returned_infos = []
 
@@ -1309,6 +1454,7 @@ def job_return_page(
             "job": job,
             "site_assets": site_assets,
             "returned_infos": returned_infos,
+            "selected_info": selected_info,
             "total_expected": total_expected,
             "total_returned": total_returned,
             "message": message,
@@ -1318,34 +1464,20 @@ def job_return_page(
 
 
 @router.post("/jobs/{job_id}/return")
-def job_return_scan(
+def job_return_to_warehouse(
     request: Request,
     job_id: int,
-    barcode_value: str = Form(...),
 ):
-
     if not request_has_permission(
         request,
         "scan.checkin",
     ):
         return deny_access()
 
-    barcode_value = barcode_value.strip()
-
-    if not barcode_value:
-        return RedirectResponse(
-            (
-                f"/jobs/{job_id}/return"
-                "?result=error&message="
-                + quote("Scan an asset QR / Asset ID.")
-            ),
-            status_code=303,
-        )
-
-    return_result = return_asset_to_prep(
+    return_result = return_job_to_inspection(
         job_id,
-        barcode_value,
-        notes="Job Return scan",
+        user_id=request.state.user_id,
+        notes="Job returned to warehouse",
     )
 
     result_type = (
@@ -1363,6 +1495,99 @@ def job_return_scan(
         status_code=303,
     )
 
+@router.post("/jobs/{job_id}/return/select")
+def job_return_select_asset(
+    request: Request,
+    job_id: int,
+    barcode_value: str = Form(...),
+):
+    if not request_has_permission(
+        request,
+        "scan.checkin",
+    ):
+        return deny_access()
+
+    barcode_value = barcode_value.strip()
+
+    if not barcode_value:
+        return RedirectResponse(
+            (
+                f"/jobs/{job_id}/return"
+                "?result=error"
+                "&message="
+                + quote("Scan an asset QR / Asset ID.")
+            ),
+            status_code=303,
+        )
+
+    con = connect()
+
+    inspection = con.execute(
+        """
+        SELECT id
+        FROM warehouse_locations
+        WHERE code = ?
+          AND active = 1
+        """,
+        ("INSPECTION",),
+    ).fetchone()
+
+    if not inspection:
+        con.close()
+
+        return RedirectResponse(
+            (
+                f"/jobs/{job_id}/return"
+                "?result=error"
+                "&message="
+                + quote("INSPECTION location is missing or inactive.")
+            ),
+            status_code=303,
+        )
+
+    asset = con.execute(
+        """
+        SELECT asset_id
+        FROM assets
+        WHERE assigned_job_id = ?
+          AND location_id = ?
+          AND status = 'Returned / Inspection'
+          AND (
+                barcode_value = ?
+                OR asset_id = ?
+              )
+        """,
+        (
+            job_id,
+            inspection["id"],
+            barcode_value,
+            barcode_value,
+        ),
+    ).fetchone()
+
+    con.close()
+
+    if not asset:
+        return RedirectResponse(
+            (
+                f"/jobs/{job_id}/return"
+                "?result=error"
+                "&message="
+                + quote(
+                    "That asset is not waiting for inspection "
+                    "for this job."
+                )
+            ),
+            status_code=303,
+        )
+
+    return RedirectResponse(
+        (
+            f"/jobs/{job_id}/return"
+            f"?inspect_asset={quote(asset['asset_id'])}"
+        ),
+        status_code=303,
+    )
 
 @router.post("/jobs/{job_id}/return/inspect")
 def job_return_inspect(
@@ -1383,6 +1608,7 @@ def job_return_inspect(
         job_id=job_id,
         barcode_value=barcode_value,
         action=action,
+        user_id=request.state.user_id,
         notes=notes,
     )
 

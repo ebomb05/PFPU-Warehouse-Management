@@ -76,7 +76,7 @@
             {{ total_returned }} / {{ total_expected }}
         </strong>
 
-        tracked assets returned from JOB-SITE
+        tracked assets received into INSPECTION
 
     </p>
 
@@ -112,44 +112,65 @@
 
 <section class="panel">
 
-    <h3>Scan Returned Equipment</h3>
+    <h3>Return Job to Warehouse</h3>
 
-    <p>
-        Scan equipment returning from the job.
-        It will move to PREP for inspection before being put away,
-        reserved for another job, or sent to repair.
-    </p>
+    {% if site_assets %}
 
-    <form
-        method="post"
-        action="/jobs/{{ job['id'] }}/return"
-    >
+        <p>
+            The equipment for this job is currently checked out at
+            JOB-SITE.
+        </p>
 
-        <input
-            type="text"
-            name="barcode_value"
-            id="barcode-input"
-            class="scanbox"
-            placeholder="Scan QR / Asset ID"
-            autocomplete="off"
-            autofocus
-            required
-            style="
-                width: 100%;
-                box-sizing: border-box;
-                margin-bottom: 12px;
+        <p style="font-size: 1.25rem;">
+            <strong>
+                {{ site_assets | length }} tracked asset(s)
+            </strong>
+            will be moved to INSPECTION.
+        </p>
+
+        <div class="notice">
+            <strong>Truck has returned?</strong>
+            Use this when the job equipment has physically arrived back
+            at the warehouse. Individual equipment does not need to be
+            scanned off the truck. Equipment will be scanned during
+            inspection.
+        </div>
+
+        <form
+            method="post"
+            action="/jobs/{{ job['id'] }}/return"
+            onsubmit="
+                return confirm(
+                    'Return this job to the warehouse and move all checked-out equipment to INSPECTION?'
+                );
             "
+            style="margin-top: 16px;"
         >
+            <button
+                type="submit"
+                class="big"
+                style="width: 100%;"
+            >
+                Return Job to Warehouse
+            </button>
+        </form>
 
-        <button
-            type="submit"
-            class="big"
-            style="width: 100%;"
-        >
-            Return to PREP / Inspection
-        </button>
+    {% else %}
 
-    </form>
+        <p>
+            No checked-out equipment remains at JOB-SITE for this job.
+        </p>
+
+        {% if returned_infos %}
+
+            <div class="notice">
+                <strong>Return received.</strong>
+                Equipment is now waiting for inspection.
+            </div>
+
+        {% endif %}
+
+    {% endif %}
 
 </section>
 
@@ -210,70 +231,136 @@
 
 </section>
 
-
 <section class="panel">
 
-    <h3>Return Inspection</h3>
+    <h3>Inspection Station</h3>
 
     {% if returned_infos %}
 
-        {% for info in returned_infos %}
+        <p>
+            <strong>{{ returned_infos | length }}</strong>
+            tracked asset(s) awaiting inspection.
+        </p>
+
+        {% if request.state.can("scan.checkin") %}
+
+        <form
+            method="post"
+            action="/jobs/{{ job['id'] }}/return/select"
+            style="margin-bottom: 18px;"
+        >
+
+            <label for="inspection-barcode-input">
+                <strong>Scan Asset QR / Asset ID</strong>
+            </label>
+
+            <input
+                id="inspection-barcode-input"
+                type="text"
+                name="barcode_value"
+                placeholder="Scan asset..."
+                autocomplete="off"
+                autofocus
+                required
+                style="
+                    width: 100%;
+                    box-sizing: border-box;
+                    font-size: 1.25rem;
+                    padding: 12px;
+                    margin-top: 8px;
+                "
+            >
+
+            <button
+                type="submit"
+                class="big"
+                style="
+                    width: 100%;
+                    margin-top: 10px;
+                "
+            >
+                Inspect Asset
+            </button>
+
+        </form>
+
+        {% endif %}
+
+
+        {% if selected_info %}
 
         <section class="panel">
 
-            <h4>
-                {{ info.asset["asset_id"] }}
-                &mdash; {{ info.asset["description"] }}
-            </h4>
+            <h3>
+                {{ selected_info.asset["asset_id"] }}
+                &mdash;
+                {{ selected_info.asset["description"] }}
+            </h3>
 
             <p>
                 <strong>Status:</strong>
-                {{ info.asset["status"] }}
+                {{ selected_info.asset["status"] }}
             </p>
 
 
-            {% if info.recommendation["next_job"] %}
+            {% if selected_info.recommendation["next_job"] %}
 
                 <p>
                     <strong>Upcoming Use:</strong>
 
-                    {{ info.recommendation["next_job"]["job_number"] }}
+                    {{
+                        selected_info.recommendation[
+                            "next_job"
+                        ]["job_number"]
+                    }}
 
                     &mdash;
 
-                    {{ info.recommendation["gap_days"] }} day(s)
-                    after this job returns.
+                    {{
+                        selected_info.recommendation[
+                            "gap_days"
+                        ]
+                    }}
+                    day(s) after this job returns.
                 </p>
 
 
-                {% if info.recommendation["recommended"] %}
+                {% if selected_info.recommendation["recommended"] %}
 
-                    <div class="notice">
-                        <strong>
-                            Recommended: Keep this item in PREP.
-                        </strong>
+                <div class="notice">
 
-                        It is needed again within the normal
-                        {{ info.recommendation["prep_window_days"] }}-day
-                        PREP window.
-                    </div>
+                    <strong>
+                        Recommended: Keep this item in PREP.
+                    </strong>
+
+                    It is needed again within the normal
+                    {{
+                        selected_info.recommendation[
+                            "prep_window_days"
+                        ]
+                    }}-day PREP window.
+
+                </div>
 
                 {% else %}
 
-                    <p>
-                        Next use is outside the normal
-                        {{ info.recommendation["prep_window_days"] }}-day
-                        PREP window.
-                    </p>
+                <p>
+                    Next use is outside the normal
+                    {{
+                        selected_info.recommendation[
+                            "prep_window_days"
+                        ]
+                    }}-day PREP window.
+                </p>
 
                 {% endif %}
 
 
             {% else %}
 
-                <p>
-                    No upcoming active job currently requires this item.
-                </p>
+            <p>
+                No upcoming active job currently requires this item.
+            </p>
 
             {% endif %}
 
@@ -288,17 +375,24 @@
                 <input
                     type="hidden"
                     name="barcode_value"
-                    value="{{ info.asset['asset_id'] }}"
+                    value="{{ selected_info.asset['asset_id'] }}"
                 >
+
+                <label>
+                    <strong>Inspection Notes</strong>
+                </label>
 
                 <input
                     type="text"
                     name="notes"
-                    placeholder="Inspection notes"
+                    placeholder="Optional inspection notes"
+                    autocomplete="off"
                     style="
                         width: 100%;
                         box-sizing: border-box;
-                        margin-bottom: 12px;
+                        padding: 10px;
+                        margin-top: 6px;
+                        margin-bottom: 14px;
                     "
                 >
 
@@ -307,20 +401,26 @@
                     type="submit"
                     name="action"
                     value="shelf"
+                    class="big"
                 >
-                    Put Away
+                    Pass Inspection / Put Away
                 </button>
 
 
-                {% if info.recommendation["recommended"] %}
+                {% if selected_info.recommendation["recommended"] %}
 
                 <button
                     type="submit"
                     name="action"
                     value="prep"
+                    class="big"
                 >
                     Keep in PREP for
-                    {{ info.recommendation["next_job"]["job_number"] }}
+                    {{
+                        selected_info.recommendation[
+                            "next_job"
+                        ]["job_number"]
+                    }}
                 </button>
 
                 {% endif %}
@@ -330,6 +430,7 @@
                     type="submit"
                     name="action"
                     value="repair"
+                    class="big"
                 >
                     Send to Repair
                 </button>
@@ -340,31 +441,37 @@
 
         </section>
 
-        {% endfor %}
+        {% else %}
+
+        <div class="notice">
+            Scan one of the returned assets above to begin inspection.
+        </div>
+
+        {% endif %}
 
 
     {% else %}
 
-    <p>
-        No returned equipment is currently waiting for inspection.
-    </p>
+        <p>
+            No returned equipment is currently waiting for inspection.
+        </p>
 
     {% endif %}
 
 </section>
 
-
 <script>
 
-    const barcodeInput =
-        document.getElementById("barcode-input");
+    const inspectionBarcodeInput =
+        document.getElementById("inspection-barcode-input");
 
-    if (barcodeInput) {
+    if (inspectionBarcodeInput) {
 
         window.addEventListener(
             "load",
             function () {
-                barcodeInput.focus();
+                inspectionBarcodeInput.focus();
+                inspectionBarcodeInput.select();
             }
         );
 

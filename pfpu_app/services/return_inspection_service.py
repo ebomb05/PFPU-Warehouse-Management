@@ -2,6 +2,7 @@ from ..database import connect
 from .asset_service import move_asset
 from .return_routing_service import find_next_job_for_item
 from .job_status_service import refresh_job_status
+from .repair_service import open_repair_record
 
 def route_returned_asset(
     job_id: int,
@@ -69,41 +70,31 @@ def route_returned_asset(
             ),
         }
 
-    prep = con.execute(
+    inspection = con.execute(
         """
         SELECT id
         FROM warehouse_locations
         WHERE code = ?
-          AND active = 1
+        AND active = 1
         """,
-        ("PREP",),
+        ("INSPECTION",),
     ).fetchone()
 
-    if not prep:
+    if not inspection:
         con.close()
 
         return {
             "success": False,
-            "message": "PREP location is missing or inactive",
+            "message": "INSPECTION location is missing or inactive",
         }
 
-    if asset["location_id"] != prep["id"]:
+    if asset["location_id"] != inspection["id"]:
         con.close()
 
         return {
             "success": False,
             "message": (
-                f"{asset['asset_id']} is not currently in PREP"
-            ),
-        }
-
-    if asset["status"] != "Returned / Inspection":
-        con.close()
-
-        return {
-            "success": False,
-            "message": (
-                f"{asset['asset_id']} is not waiting for return inspection"
+                f"{asset['asset_id']} is not currently in INSPECTION"
             ),
         }
 
@@ -174,36 +165,16 @@ def route_returned_asset(
     # ---------------------------------------------------------
     if action == "repair":
 
-        repair = con.execute(
-            """
-            SELECT *
-            FROM warehouse_locations
-            WHERE code = ?
-              AND active = 1
-            """,
-            ("REPAIR",),
-        ).fetchone()
-
-        if not repair:
-            con.close()
-
-            return {
-                "success": False,
-                "message": "REPAIR location is missing or inactive",
-            }
-
         con.close()
 
-        result = move_asset(
-            asset_id=asset["id"],
-            to_location_id=repair["id"],
-            action="Return Repair",
-            job_id=job_id,
-            user_id=user_id,
+        issue = notes.strip() or "Failed return inspection"
+
+        result = open_repair_record(
+            barcode_value=asset["asset_id"],
+            issue=issue,
             notes=notes,
-            new_status="Repair",
-            set_job_assignment=True,
-            assigned_job_id=None,
+            user_id=user_id,
+            job_id=job_id,
         )
 
         if result["success"]:
@@ -213,6 +184,24 @@ def route_returned_asset(
         result["job_status"] = status_result["status"]
 
         return result
+
+    prep = con.execute(
+        """
+        SELECT id
+        FROM warehouse_locations
+        WHERE code = ?
+        AND active = 1
+        """,
+        ("PREP",),
+    ).fetchone()
+
+    if not prep:
+        con.close()
+
+        return {
+            "success": False,
+            "message": "PREP location is missing or inactive",
+        }
 
     # ---------------------------------------------------------
     # KEEP IN PREP FOR NEXT JOB
