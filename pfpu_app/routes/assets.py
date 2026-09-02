@@ -76,9 +76,18 @@ def assets(
 
     items = con.execute(
         """
-        SELECT id, description, qty_total, prefix
-        FROM item_master
-        ORDER BY description
+        SELECT
+            im.id,
+            im.description,
+            im.qty_total,
+            im.prefix,
+            (
+                SELECT COUNT(*)
+                FROM assets a
+                WHERE a.item_master_id = im.id
+            ) AS tracked_count
+        FROM item_master im
+        ORDER BY im.description
         LIMIT 1000
         """
     ).fetchall()

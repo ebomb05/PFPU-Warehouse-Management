@@ -52,9 +52,16 @@
 
             {% for item in items %}
 
-            <option value="{{ item['id'] }}">
+            <option
+                value="{{ item['id'] }}"
+                data-total="{{ item['qty_total'] or 0 }}"
+                data-tracked="{{ item['tracked_count'] or 0 }}"
+                data-available="{{ (item['qty_total'] or 0) - (item['tracked_count'] or 0) }}"
+            >
                 {{ item["description"] }}
-                (Qty {{ item["qty_total"] }})
+                (Owned {{ item["qty_total"] or 0 }}
+                | Tracked {{ item["tracked_count"] or 0 }}
+                | Available {{ [(item["qty_total"] or 0) - (item["tracked_count"] or 0), 0] | max }})
             </option>
 
             {% endfor %}
@@ -63,6 +70,7 @@
 
 
         <input
+            id="asset-generate-qty"
             name="qty"
             type="number"
             min="1"
@@ -96,7 +104,10 @@
         </select>
 
 
-        <button type="submit">
+        <button
+            id="asset-generate-button"
+            type="submit"
+        >
             Generate Assets
         </button>
 
@@ -233,4 +244,71 @@
 
 </section>
 
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const itemSelect = document.querySelector(
+        'select[name="item_master_id"]'
+    );
+    const qtyInput = document.getElementById(
+        "asset-generate-qty"
+    );
+    const generateButton = document.getElementById(
+        "asset-generate-button"
+    );
+
+    if (!itemSelect || !qtyInput || !generateButton) {
+        return;
+    }
+
+    function updateAssetGenerationLimit() {
+        const selectedOption =
+            itemSelect.options[itemSelect.selectedIndex];
+
+        if (!selectedOption) {
+            return;
+        }
+
+        const available = Math.max(
+            0,
+            parseInt(
+                selectedOption.dataset.available || "0",
+                10
+            )
+        );
+
+        if (available < 1) {
+            qtyInput.value = 1;
+            qtyInput.max = 1;
+            qtyInput.disabled = true;
+
+            generateButton.disabled = true;
+            generateButton.textContent =
+                "All Inventory Tracked";
+
+            return;
+        }
+
+        qtyInput.disabled = false;
+        qtyInput.max = available;
+
+        if (
+            parseInt(qtyInput.value || "1", 10) >
+            available
+        ) {
+            qtyInput.value = available;
+        }
+
+        generateButton.disabled = false;
+        generateButton.textContent =
+            "Generate Assets";
+    }
+
+    itemSelect.addEventListener(
+        "change",
+        updateAssetGenerationLimit
+    );
+
+    updateAssetGenerationLimit();
+});
+</script>
 {% endblock %}

@@ -51,14 +51,54 @@ def generate_assets_for_item(
                 "created_count": 0,
             }
 
-        create_qty = max(0, min(qty, 500))
+        requested_qty = max(0, min(qty, 500))
 
-        if create_qty < 1:
+        if requested_qty < 1:
             return {
                 "success": False,
                 "message": "Quantity must be at least 1.",
                 "created_count": 0,
             }
+
+        total_quantity = item["qty_total"] or 0
+
+        tracked_count = con.execute(
+            """
+            SELECT COUNT(*)
+            FROM assets
+            WHERE item_master_id = ?
+            """,
+            (item_master_id,),
+        ).fetchone()[0]
+
+        available_to_generate = max(
+            0,
+            total_quantity - tracked_count,
+        )
+
+        if available_to_generate < 1:
+            return {
+                "success": False,
+                "message": (
+                    "All available inventory has already been "
+                    "converted to tracked assets."
+                ),
+                "created_count": 0,
+            }
+
+        if requested_qty > available_to_generate:
+            return {
+                "success": False,
+                "message": (
+                    f"Cannot generate {requested_qty} assets. "
+                    f"This item has {total_quantity} unit(s) in inventory, "
+                    f"{tracked_count} tracked asset(s), and only "
+                    f"{available_to_generate} available to generate."
+                ),
+                "created_count": 0,
+            }
+
+        create_qty = requested_qty
 
         prefix = (item["prefix"] or "").strip()
 
