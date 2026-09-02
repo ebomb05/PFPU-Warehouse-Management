@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Inspection Station</h1>
+        <p>
+            Scan returned equipment, inspect it, and route it
+            back to storage, PREP, or Repair.
+        </p>
+    </div>
+</div>
+
+
+{% if message %}
+
+<div
+    class="alert {% if result == 'success' %}alert-success{% else %}alert-error{% endif %}"
+    style="margin-bottom: 18px;"
+>
+    {{ message }}
+</div>
+
+{% endif %}
+
+
+{% if not inspection %}
+
+<section class="panel">
+    <h2>Inspection Station Unavailable</h2>
+
+    <p>
+        The INSPECTION warehouse location is missing or inactive.
+    </p>
+</section>
+
+{% else %}
+
+
+<section class="panel">
+    <div
+        style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        "
+    >
+        <div>
+            <h2 style="margin-bottom: 6px;">
+                Equipment Waiting for Inspection
+            </h2>
+
+            <p style="margin: 0;">
+                Scan the next returned asset when you are ready
+                to inspect it.
+            </p>
+        </div>
+
+        <div
+            style="
+                font-size: 32px;
+                font-weight: 700;
+                min-width: 80px;
+                text-align: center;
+            "
+        >
+            {{ waiting_count }}
+        </div>
+    </div>
+</section>
+
+
+<section class="panel">
+    <h2>Scan Returned Asset</h2>
+
+    <form
+        method="post"
+        action="/inspection/select"
+        id="inspection-scan-form"
+    >
+        <label for="inspection-barcode-input">
+            Asset QR / Asset ID
+        </label>
+
+        <input
+            type="text"
+            id="inspection-barcode-input"
+            name="barcode_value"
+            autocomplete="off"
+            autofocus
+            required
+            placeholder="Scan asset QR or enter Asset ID"
+            style="
+                width: 100%;
+                font-size: 22px;
+                padding: 14px;
+                margin-top: 8px;
+                margin-bottom: 14px;
+            "
+        >
+
+        <button type="submit">
+            Inspect Asset
+        </button>
+    </form>
+</section>
+
+
+{% if selected_info %}
+
+{% set asset = selected_info["asset"] %}
+{% set recommendation = selected_info["recommendation"] %}
+
+
+<section class="panel">
+    <h2>Asset Inspection</h2>
+
+    <div
+        style="
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 22px;
+        "
+    >
+
+        <div>
+            <strong>Asset ID</strong>
+            <div>{{ asset["asset_id"] }}</div>
+        </div>
+
+        <div>
+            <strong>Description</strong>
+            <div>{{ asset["description"] or "-" }}</div>
+        </div>
+
+        <div>
+            <strong>Status</strong>
+            <div>{{ asset["status"] }}</div>
+        </div>
+
+        <div>
+            <strong>Originating Job</strong>
+
+            <div>
+                {% if asset["job_number"] %}
+
+                <a href="/jobs/{{ asset['assigned_job_id'] }}">
+                    {{ asset["job_number"] }}
+                </a>
+
+                {% else %}
+
+                Unknown
+
+                {% endif %}
+            </div>
+        </div>
+
+        <div>
+            <strong>Customer</strong>
+            <div>{{ asset["customer_name"] or "-" }}</div>
+        </div>
+
+        <div>
+            <strong>Event</strong>
+            <div>{{ asset["event_name"] or "-" }}</div>
+        </div>
+
+    </div>
+
+
+    {% if recommendation and recommendation["recommended"] %}
+
+    <div
+        class="alert alert-success"
+        style="margin-bottom: 18px;"
+    >
+        <strong>Next Job Recommendation</strong>
+
+        <div style="margin-top: 6px;">
+            This equipment is needed again for
+            <strong>
+                {{ recommendation["next_job"]["job_number"] }}
+            </strong>.
+
+            {% if recommendation["gap_days"] is not none %}
+            The next job is
+            {{ recommendation["gap_days"] }}
+            day{% if recommendation["gap_days"] != 1 %}s{% endif %}
+            away.
+            {% endif %}
+        </div>
+    </div>
+
+    {% endif %}
+
+
+    <form
+        method="post"
+        action="/inspection/inspect"
+        id="inspection-action-form"
+    >
+
+        <input
+            type="hidden"
+            name="barcode_value"
+            value="{{ asset['asset_id'] }}"
+        >
+
+
+        <label for="inspection-notes">
+            Inspection Notes
+        </label>
+
+        <textarea
+            id="inspection-notes"
+            name="notes"
+            rows="3"
+            placeholder="Optional inspection notes"
+            style="
+                width: 100%;
+                margin-top: 8px;
+                margin-bottom: 18px;
+            "
+        ></textarea>
+
+
+        <div
+            style="
+                display: flex;
+                gap: 12px;
+                flex-wrap: wrap;
+            "
+        >
+
+            <button
+                type="submit"
+                name="action"
+                value="shelf"
+            >
+                Pass Inspection / Put Away
+            </button>
+
+
+            {% if recommendation and recommendation["recommended"] %}
+
+            <button
+                type="submit"
+                name="action"
+                value="prep"
+            >
+                Keep in PREP for
+                {{ recommendation["next_job"]["job_number"] }}
+            </button>
+
+            {% endif %}
+
+
+            <button
+                type="submit"
+                name="action"
+                value="repair"
+            >
+                Send to Repair
+            </button>
+
+        </div>
+
+    </form>
+
+</section>
+
+{% endif %}
+
+
+{% if waiting_count > 0 %}
+
+<section class="panel">
+
+    <h2>Waiting for Inspection</h2>
+
+    <p>
+        Returned equipment currently waiting at the
+        Inspection Station.
+    </p>
+
+    <div
+        style="
+            max-height: 340px;
+            overflow-y: auto;
+            overflow-x: auto;
+            margin-top: 16px;
+        "
+    >
+
+        <table style="width: 100%;">
+
+            <thead>
+                <tr>
+                    <th>Asset ID</th>
+                    <th>Description</th>
+                    <th>Job</th>
+                    <th>Customer</th>
+                    <th>Event</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for asset in waiting_assets %}
+
+                <tr>
+
+                    <td>
+                        <a href="/assets/{{ asset['id'] }}">
+                            <strong>
+                                {{ asset["asset_id"] }}
+                            </strong>
+                        </a>
+                    </td>
+
+                    <td>
+                        {{ asset["description"] or "-" }}
+                    </td>
+
+                    <td>
+                        {% if asset["job_number"] %}
+
+                        <a href="/jobs/{{ asset['assigned_job_id'] }}">
+                            {{ asset["job_number"] }}
+                        </a>
+
+                        {% else %}
+
+                        <strong>Missing Job</strong>
+
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {{ asset["customer_name"] or "-" }}
+                    </td>
+
+                    <td>
+                        {{ asset["event_name"] or "-" }}
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+{% else %}
+
+<section class="panel">
+    <h2>Inspection Queue Clear</h2>
+
+    <p>
+        There is currently no returned equipment waiting
+        for inspection.
+    </p>
+</section>
+
+{% endif %}
+
+
+{% endif %}
+
+
+<script>
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const scanInput = document.getElementById(
+            "inspection-barcode-input"
+        );
+
+        if (scanInput) {
+            scanInput.focus();
+            scanInput.select();
+        }
+
+    }
+);
+</script>
+
+{% endblock %}

@@ -72,6 +72,19 @@
         Print Location QR
     </a>
 
+    {% if location["code"] == "INSPECTION" and request.state.can("scan.checkin") %}
+
+    &nbsp;&nbsp;
+
+    <a
+        href="/inspection"
+        class="button"
+    >
+        Start Inspection
+    </a>
+
+    {% endif %}
+
 </div>
 
 {% if request.state.can("locations.manage") %}

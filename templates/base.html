@@ -58,7 +58,6 @@
             </a>
             {% endif %}
 
-
             {% if "inventory.view" in perms %}
             <a
                 href="/inventory"
@@ -151,6 +150,16 @@
             </a>
             {% endif %}
 
+            {% if "scan.checkin" in perms %}
+            <a
+                href="/inspection"
+                class="nav-button {% if path.startswith('/inspection') %}active{% endif %}"
+            >
+                <span class="nav-icon">&#10004;</span>
+                <span>Inspection Station</span>
+            </a>
+            {% endif %}
+
 
             {% if "repairs.view" in perms %}
             <a
@@ -161,7 +170,6 @@
                 <span>Repairs</span>
             </a>
             {% endif %}
-
 
             {% if "audits.perform" in perms %}
             <a
