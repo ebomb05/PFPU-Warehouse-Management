@@ -33,6 +33,24 @@ def route_returned_asset(
 
     con = connect()
 
+    job = con.execute(
+        """
+        SELECT id, status
+        FROM jobs
+        WHERE id = ?
+          AND status != 'Cancelled'
+        """,
+        (job_id,),
+    ).fetchone()
+
+    if not job:
+        con.close()
+
+        return {
+            "success": False,
+            "message": "Job not found or cancelled",
+        }
+
     asset = con.execute(
         """
         SELECT

@@ -32,7 +32,7 @@ def return_asset_to_prep(
         SELECT *
         FROM jobs
         WHERE id = ?
-          AND status != 'Cancelled'
+          AND status NOT IN ('Cancelled', 'Completed')
         """,
         (job_id,),
     ).fetchone()

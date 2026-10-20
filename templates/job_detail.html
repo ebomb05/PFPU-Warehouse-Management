@@ -47,6 +47,7 @@
 </header>
 
 
+
 {% if message %}
 <section class="panel">
     <strong>{{ message }}</strong>
@@ -54,9 +55,87 @@
 {% endif %}
 
 
+<!-- ============================================= -->
+<!-- JOB STATUS AND COMPLETION                     -->
+<!-- ============================================= -->
+
+<section class="panel">
+
+    <h3>Job Status & Completion</h3>
+
+    <p>
+        <strong>Current Status:</strong>
+        {{ job["status"] }}
+    </p>
+
+    {% if job["status"] == "Completed" %}
+
+        <p>
+            <strong>Completed At:</strong>
+            {{ job["completed_at"] or "Not recorded" }}
+        </p>
+
+        <p>
+            <strong>Completed By (Employee ID):</strong>
+            {{ job["completed_by"] or "Not recorded" }}
+        </p>
+
+        <p>
+            This job is completed and retained
+            for historical reference.
+        </p>
+
+    {% elif job["status"] == "Ready to Complete" %}
+
+        <p>
+            All assigned tracked equipment has been
+            resolved through the warehouse workflow.
+        </p>
+
+        {% if request.state.can("jobs.edit") and job["status"] not in ("Completed", "Cancelled") %}
+
+            <form
+                method="post"
+                action="/jobs/{{ job['id'] }}/complete"
+                onsubmit="return confirm('Complete this job? This action cannot be undone.');"
+            >
+                <button type="submit">
+                    Complete Job
+                </button>
+            </form>
+
+        {% else %}
+
+            <p>
+                An employee with job editing permission
+                must complete this job.
+            </p>
+
+        {% endif %}
+
+    {% elif job["status"] == "Cancelled" %}
+
+        <p>
+            This job has been cancelled.
+        </p>
+
+    {% else %}
+
+        <p>
+            Complete the remaining warehouse operations
+            and resolve all assigned equipment before
+            closing this job.
+        </p>
+
+    {% endif %}
+
+</section>
+
+
 <section class="panel">
 
     <h3>Assigned Vehicles</h3>
+
 
     {% if assigned_vehicles %}
 
@@ -69,7 +148,7 @@
                 <th>Plate</th>
                 <th>Warehouse Location</th>
 
-                {% if request.state.can("jobs.edit") %}
+                {% if request.state.can("jobs.edit") and job["status"] not in ("Completed", "Cancelled") %}
                 <th>Action</th>
                 {% endif %}
             </tr>
@@ -104,7 +183,7 @@
                 </td>
 
 
-                {% if request.state.can("jobs.edit") %}
+                {% if request.state.can("jobs.edit") and job["status"] not in ("Completed", "Cancelled") %}
 
                 <td>
 
@@ -140,7 +219,7 @@
     {% endif %}
 
 
-    {% if request.state.can("jobs.edit") %}
+    {% if request.state.can("jobs.edit") and job["status"] not in ("Completed", "Cancelled") %}
 
         {% if available_vehicles %}
 
@@ -188,7 +267,7 @@
 </section>
 
 
-{% if request.state.can("jobs.edit") %}
+{% if request.state.can("jobs.edit") and job["status"] not in ("Completed", "Cancelled") %}
 
 <section class="panel">
 
@@ -379,8 +458,11 @@
 </section>
 
 {% if
-    request.state.can("scan.checkout")
-    or request.state.can("scan.checkin")
+    job["status"] not in ("Completed", "Cancelled")
+    and (
+        request.state.can("scan.checkout")
+        or request.state.can("scan.checkin")
+    )
 %}
 
 <section class="panel">
@@ -424,7 +506,7 @@
 {% endif %}
 
 
-{% if request.state.can("jobs.edit") and available_vehicles %}
+{% if request.state.can("jobs.edit") and available_vehicles and job["status"] not in ("Completed", "Cancelled") %}
 
 <div style="margin-bottom: 24px;">
 
@@ -473,6 +555,7 @@
 </div>
 
 {% endif %}
+
     <div class="form-grid">
 
         {% if request.state.can("scan.checkout") %}

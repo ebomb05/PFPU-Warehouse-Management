@@ -25,7 +25,7 @@ def load_asset_to_vehicle(
         SELECT *
         FROM jobs
         WHERE id = ?
-          AND status NOT IN ('Cancelled', 'Returned')
+          AND status NOT IN ('Cancelled', 'Returned', 'Completed')
         """,
         (job_id,),
     ).fetchone()

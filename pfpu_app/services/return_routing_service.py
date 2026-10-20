@@ -58,7 +58,7 @@ def find_next_job_for_item(
             ON j.id = jl.job_id
         WHERE jl.item_master_id = ?
           AND j.id != ?
-          AND j.status NOT IN ('Cancelled', 'Returned')
+          AND j.status NOT IN ('Cancelled', 'Returned', 'Completed')
           AND j.out_date >= ?
         ORDER BY j.out_date
         LIMIT 1

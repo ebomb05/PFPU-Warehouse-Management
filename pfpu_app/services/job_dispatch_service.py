@@ -36,7 +36,7 @@ def dispatch_asset_to_job_site(
         SELECT *
         FROM jobs
         WHERE id = ?
-          AND status NOT IN ('Cancelled', 'Returned')
+          AND status NOT IN ('Cancelled', 'Returned', 'Completed')
         """,
         (job_id,),
     ).fetchone()

@@ -118,17 +118,20 @@ def refresh_job_status(job_id: int):
     if checked_out_count > 0:
         new_status = "Dispatched"
 
-    elif returning_count > 0:
-        new_status = "Returning"
-
     elif loaded_count > 0:
         new_status = "Ready / Loaded"
 
     elif prep_count > 0:
         new_status = "Pulling"
 
-    elif assigned_count == 0 and workflow_history_count > 0:
+    elif workflow_history_count > 0 and (
+        assigned_count == 0
+        or assigned_count == returning_count
+    ):
         new_status = "Ready to Complete"
+
+    elif returning_count > 0:
+        new_status = "Returning"
 
     else:
         new_status = "Planning"

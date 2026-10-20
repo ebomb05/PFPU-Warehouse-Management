@@ -20,14 +20,76 @@ from ..services.job_return_service import (
 from ..services.return_inspection_service import route_returned_asset
 from ..services.return_routing_service import find_next_job_for_item
 from ..services.auth_service import request_has_permission
+from ..services.job_completion_service import complete_job
 
 router = APIRouter()
+
+@router.post("/jobs/{job_id}/complete")
+def job_complete(
+    request: Request,
+    job_id: int,
+):
+    if not request_has_permission(
+        request,
+        "jobs.edit",
+    ):
+        return deny_access()
+
+    result = complete_job(
+        job_id=job_id,
+        user_id=request.state.user_id,
+    )
+
+    message = quote(result["message"])
+
+    return RedirectResponse(
+        f"/jobs/{job_id}?message={message}",
+        status_code=303,
+    )
 
 def deny_access():
     return RedirectResponse(
         "/?message=Access denied",
         status_code=303,
     )
+
+def job_is_locked(job_id: int) -> bool:
+    """
+    Completed and cancelled jobs cannot be modified.
+    """
+
+    con = connect()
+
+    try:
+        job = con.execute(
+            """
+            SELECT status
+            FROM jobs
+            WHERE id = ?
+            """,
+            (job_id,),
+        ).fetchone()
+
+        return (
+            job is None
+            or job["status"] in ("Completed", "Cancelled")
+        )
+
+    finally:
+        con.close()
+
+
+def deny_locked_job(job_id: int):
+    return RedirectResponse(
+        (
+            f"/jobs/{job_id}"
+            "?message="
+            "This job is completed, cancelled, "
+            "or no longer available for editing."
+        ),
+        status_code=303,
+    )
+
 
 def next_job_number(con) -> str:
     """
@@ -379,6 +441,9 @@ def add_job_line(
         "jobs.edit",
     ):
         return deny_access()
+
+    if job_is_locked(job_id):
+        return deny_locked_job(job_id)
 
     con = connect()
 
@@ -799,6 +864,9 @@ def job_pull_page(
         "scan.checkout",
     ):
         return deny_access()
+
+    if job_is_locked(job_id):
+        return deny_locked_job(job_id)
 
     con = connect()
 
@@ -1473,6 +1541,9 @@ def job_return_to_warehouse(
         "scan.checkin",
     ):
         return deny_access()
+
+    if job_is_locked(job_id):
+        return deny_locked_job(job_id)
 
     return_result = return_job_to_inspection(
         job_id,
