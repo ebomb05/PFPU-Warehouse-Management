@@ -1,7 +1,7 @@
 from datetime import datetime
 
 
-CURRENT_SCHEMA_VERSION = 10
+CURRENT_SCHEMA_VERSION = 11
 
 
 def run_migrations(con):
@@ -1074,6 +1074,54 @@ def run_migrations(con):
         )
 
         current_version = 10
+
+    # ---------------------------------------------------------
+    # Migration 11 - Job Completion Tracking
+    # ---------------------------------------------------------
+    if current_version < 11:
+        job_columns = {
+            row["name"]
+            for row in con.execute(
+                "PRAGMA table_info(jobs)"
+            ).fetchall()
+        }
+
+        if "completed_at" not in job_columns:
+            con.execute(
+                """
+                ALTER TABLE jobs
+                ADD COLUMN completed_at TEXT
+                """
+            )
+
+        if "completed_by" not in job_columns:
+            con.execute(
+                """
+                ALTER TABLE jobs
+                ADD COLUMN completed_by INTEGER
+                REFERENCES users(id)
+                """
+            )
+
+        con.execute(
+            """
+            INSERT INTO schema_migrations(
+                version,
+                name,
+                applied_at
+            )
+            VALUES (?, ?, ?)
+            """,
+            (
+                11,
+                "Add job completion tracking",
+                datetime.now().isoformat(
+                    timespec="seconds"
+                ),
+            ),
+        )
+
+        current_version = 11
 
     con.commit()
 
