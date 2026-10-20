@@ -77,7 +77,7 @@
 
         <p>
             <strong>Completed By (Employee ID):</strong>
-            {{ job["completed_by"] or "Not recorded" }}
+            {{ completed_by_name or "Unknown" }}
         </p>
 
         <p>
@@ -792,5 +792,70 @@
     {% endif %}
 
 </section>
+
+{% if job["status"] == "Completed" %}
+
+<section class="panel">
+
+    <h3>Equipment Movement History</h3>
+
+    <p>
+        Historical equipment movements recorded for this job.
+        These records remain available after equipment is
+        returned to inventory or assigned to another job.
+    </p>
+
+    {% if movement_history %}
+
+    <table>
+        <thead>
+            <tr>
+                <th>Date / Time</th>
+                <th>Asset</th>
+                <th>Description</th>
+                <th>Action</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Employee</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for movement in movement_history %}
+            <tr>
+                <td>{{ movement["moved_at"] or "" }}</td>
+
+                <td>
+                    <strong>
+                        {{ movement["asset_number"] or "" }}
+                    </strong>
+                </td>
+
+                <td>{{ movement["asset_description"] or "" }}</td>
+
+                <td>{{ movement["action"] or "" }}</td>
+
+                <td>{{ movement["from_location"] or "" }}</td>
+
+                <td>{{ movement["to_location"] or "" }}</td>
+
+                <td>{{ movement["employee_name"] or "" }}</td>
+
+                <td>{{ movement["notes"] or "" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% else %}
+
+    <p>No tracked equipment movements were recorded for this job.</p>
+
+    {% endif %}
+
+</section>
+
+{% endif %}
 
 {% endblock %}

@@ -147,6 +147,7 @@ def jobs(
         FROM jobs j
         LEFT JOIN customers c
             ON c.id = j.customer_id
+        WHERE j.status != 'Completed'
         ORDER BY j.out_date DESC, j.out_time DESC
         """
     ).fetchall()
@@ -172,6 +173,69 @@ def jobs(
         },
     )
 
+@router.get("/jobs/history", response_class=HTMLResponse)
+def completed_job_history(
+    request: Request,
+    search: str = "",
+):
+    if not request_has_permission(request, "jobs.view"):
+        return deny_access()
+
+    search = search.strip()
+
+    con = connect()
+
+    try:
+        rows = con.execute(
+            """
+            SELECT
+                j.id,
+                j.job_number,
+                j.event_name,
+                j.venue,
+                j.out_date,
+                j.return_date,
+                j.completed_at,
+                j.completed_by,
+                COALESCE(
+                    NULLIF(u.display_name, ''),
+                    u.username,
+                    'Unknown'
+                ) AS completed_by_name,
+                COALESCE(c.name, j.customer) AS customer_name
+            FROM jobs j
+            LEFT JOIN customers c
+                ON c.id = j.customer_id
+            LEFT JOIN users u
+                ON u.id = j.completed_by
+            WHERE j.status = 'Completed'
+              AND (
+                  ? = ''
+                  OR j.job_number LIKE ?
+                  OR COALESCE(c.name, j.customer) LIKE ?
+                  OR COALESCE(j.event_name, '') LIKE ?
+                  OR COALESCE(j.venue, '') LIKE ?
+                  OR COALESCE(j.out_date, '') LIKE ?
+                  OR COALESCE(j.return_date, '') LIKE ?
+              )
+            ORDER BY j.completed_at DESC, j.id DESC
+            """,
+            (
+                search,
+                *([f"%{search}%"] * 6),
+            ),
+        ).fetchall()
+    finally:
+        con.close()
+
+    return request.app.state.templates.TemplateResponse(
+        "job_history.html",
+        {
+            "request": request,
+            "rows": rows,
+            "search": search,
+        },
+    )
 
 @router.post("/jobs/create")
 def create_job(
@@ -408,7 +472,65 @@ def job_detail(
         (job_id,),
     ).fetchall()
 
+    completed_by_name = None
+
+    if job["completed_by"] is not None:
+        completed_by_row = con.execute(
+            """
+            SELECT
+                COALESCE(
+                    NULLIF(display_name, ''),
+                    username
+                ) AS employee_name
+            FROM users
+            WHERE id = ?
+            """,
+            (job["completed_by"],),
+        ).fetchone()
+
+        completed_by_name = (
+            completed_by_row["employee_name"]
+            if completed_by_row
+            else "Unknown"
+        )
+
     pull_list = build_pull_list(job_id)
+
+    # Historical equipment movements remain associated with
+    # the original job after assets return to inventory.
+    movement_history = []
+
+    if job["status"] == "Completed":
+        movement_history = con.execute(
+            """
+            SELECT
+                h.id,
+                h.moved_at,
+                h.action,
+                h.notes,
+                a.asset_id AS asset_number,
+                a.description AS asset_description,
+                fl.code AS from_location,
+                tl.code AS to_location,
+                COALESCE(
+                    NULLIF(u.display_name, ''),
+                    u.username,
+                    'Unknown'
+                ) AS employee_name
+            FROM asset_location_history h
+            LEFT JOIN assets a
+                ON a.id = h.asset_id
+            LEFT JOIN warehouse_locations fl
+                ON fl.id = h.from_location_id
+            LEFT JOIN warehouse_locations tl
+                ON tl.id = h.to_location_id
+            LEFT JOIN users u
+                ON u.id = h.user_id
+            WHERE h.job_id = ?
+            ORDER BY h.moved_at ASC, h.id ASC
+            """,
+            (job_id,),
+        ).fetchall()
 
     con.close()
 
@@ -423,6 +545,8 @@ def job_detail(
             "assigned_vehicles": assigned_vehicles,
             "available_vehicles": available_vehicles,
             "pull_list": pull_list,
+            "movement_history": movement_history,
+            "completed_by_name": completed_by_name,
             "message": message,
         },
     )

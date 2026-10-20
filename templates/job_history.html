@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header>
+    <div>
+        <h2>Completed Job History</h2>
+        <p>Search and review completed warehouse jobs.</p>
+
+        <p>
+            <a href="/jobs">Back to Active Jobs</a>
+        </p>
+    </div>
+</header>
+
+<section class="panel">
+
+    <h3>Search Completed Jobs</h3>
+
+    <form method="get" action="/jobs/history">
+        <div class="form-grid">
+            <div>
+                <label for="history-search">
+                    Job Number, Customer, Event, Venue, or Date
+                </label>
+
+                <input
+                    id="history-search"
+                    type="search"
+                    name="search"
+                    value="{{ search }}"
+                    placeholder="Search completed jobs..."
+                >
+            </div>
+        </div>
+
+        <br>
+
+        <button type="submit">Search</button>
+        <a href="/jobs/history">Clear Search</a>
+    </form>
+
+</section>
+
+<section class="panel">
+
+    <h3>Completed Jobs</h3>
+
+    {% if rows %}
+
+    <table>
+        <thead>
+            <tr>
+                <th>Job</th>
+                <th>Customer</th>
+                <th>Event</th>
+                <th>Venue</th>
+                <th>Out Date</th>
+                <th>Return Date</th>
+                <th>Completed</th>
+                <th>Completed By</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for job in rows %}
+            <tr>
+                <td>
+                    <a href="/jobs/{{ job['id'] }}">
+                        <strong>{{ job["job_number"] }}</strong>
+                    </a>
+                </td>
+
+                <td>{{ job["customer_name"] or "" }}</td>
+                <td>{{ job["event_name"] or "" }}</td>
+                <td>{{ job["venue"] or "" }}</td>
+                <td>{{ job["out_date"] or "" }}</td>
+                <td>{{ job["return_date"] or "" }}</td>
+                <td>{{ job["completed_at"] or "" }}</td>
+                <td>
+                    {{ job["completed_by_name"] }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% else %}
+
+    <p>No completed jobs match your search.</p>
+
+    {% endif %}
+
+</section>
+
+{% endblock %}
